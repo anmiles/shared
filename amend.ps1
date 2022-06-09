@@ -69,11 +69,11 @@ repo -name $name -quiet:$quiet -action {
             $message = ask -value $prev_message -old "Wrong commit message" -new "Right commit message" -append
 
             if ($message -eq "diff" -or $message -eq "?") {
-                git diff HEAD^ HEAD
+                git diff HEAD
             }
 
             if ($message -eq "difftool" -or $message -eq "??") {
-                git difftool -d HEAD^ HEAD
+                git difftool -d HEAD
             }
         }
 

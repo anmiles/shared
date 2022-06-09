@@ -103,14 +103,14 @@ repo -name $name -quiet:$quiet -action {
                 if ($message -eq "diff" -or $message -eq "?") {
                     Write-Host "Diff will be paginated. Press ENTER to show more and 'q' in the end" -ForegroundColor Yellow
                     Write-Host "-------------------------------------------------------------------" -ForegroundColor Yellow
-                    git diff
+                    git diff HEAD
                     Write-Host "-------------------------------------------------------------------" -ForegroundColor Yellow
                     $message = $null
                     continue
                 }
 
                 if ($message -eq "difftool" -or $message -eq "??") {
-                    git difftool -d
+                    git difftool -d HEAD
                     $message = $null
                     continue
                 }
