@@ -163,7 +163,7 @@ repo -name $name -quiet:$quiet -action {
     if (!$?) { return }
     $unpushed = $unpushed_list.Count
 
-    if ($unpushed -and $push) {
+    if ($mr -or ($unpushed -and $push)) {
         if ($squash -and $unpushed -gt 1) {
             $messages = git log --format=format:%s --reverse origin/$branch..$branch
             $aggregated_message = SquashMessages $messages
@@ -207,11 +207,16 @@ repo -name $name -quiet:$quiet -action {
 
                 if ((Test-Path -Type Container $repo/.git) -and $commit_message_pattern) {
                     $issue = [Regex]::Matches($message, $commit_message_pattern).Groups[1].Value
-                    $arguments += "-o merge_request.description=`"[$issue]`""
+                    $arguments += "-o merge_request.description=`"\[$issue\]`""
                 }
+            }
+
+            if (!$unpushed) {
+                git commit -m $message --allow-empty
             }
         }
 
+        Write-Host "git $arguments"
         iex "git $arguments"
     }
 }
