@@ -9,6 +9,8 @@
     Commit message
 .PARAMETER quiet
     Whether to not output current repository and branch name
+.PARAMETER nomerge
+    Whether to suppress asking for merge with default branch
 .EXAMPLE
     load 
     # load repository in the current directory
@@ -29,7 +31,8 @@
 Param (
     [string]$name,
     [string]$message,
-    [switch]$quiet
+    [switch]$quiet,
+    [switch]$nomerge = $true
 )
 
 Function Pull {
@@ -40,18 +43,22 @@ Function Pull {
 }
 
 repo -name $name -quiet:$quiet -action {
-    if ($branch -ne $default_branch) {
-        ChangeBranch $default_branch
-    }
-
-    Pull
-
-    if ($branch -ne $default_branch) {
-        ChangeBranch $branch
+    if ($nomerge) {
         Pull
-        
-        if ($message -eq "merge" -or (confirm "Do you want to merge {{$default_branch}} into {{$branch}}")) {
-            git merge $default_branch
+    } else {
+        if ($branch -ne $default_branch) {
+            ChangeBranch $default_branch
+        }
+
+        Pull
+
+        if ($branch -ne $default_branch) {
+            ChangeBranch $branch
+            Pull
+            
+            if ($message -eq "merge" -or (confirm "Do you want to merge {{$default_branch}} into {{$branch}}")) {
+                git merge $default_branch
+            }
         }
     }
 

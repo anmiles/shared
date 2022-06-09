@@ -25,7 +25,10 @@ $json.PSObject.Properties | % {
     }
 }
 
-$vars.PATH = (($env:PATH -split ";") + @($scripts_root, $scripts_shared) + $vars.PATH) -Join ";"
+$paths = ($env:PATH -split ";")
+if ($vars.WSL_ROOT) { $paths = $paths | ? { !($_.Contains("\Git\bin\")) }}
+$vars.PATH = ($paths + @($scripts_root, $scripts_shared) + $vars.PATH) -Join ";"
+
 $vars.WORKSPACE_NAME = Split-Path $root -Leaf
 $vars.GIT_ROOT = $root
 $vars.SCRIPTS_ROOT = $scripts_root
@@ -34,6 +37,7 @@ $vars.TERRAFORM_ROOT = $terraform_root
 if (!$vars.PROMPT_COLOR) { $vars.PROMPT_COLOR = "White" }
 
 $vars.Keys | % { [Environment]::SetEnvironmentVariable($_, $vars[$_], "Process") }
+[Environment]::SetEnvironmentVariable("ENVARS", $vars.Keys -join ",", "Process")
 
 function global:prompt {
     Write-Host " `b" -ForegroundColor Gray -NoNewLine:(!$env:PROMPTED)

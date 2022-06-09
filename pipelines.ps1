@@ -40,7 +40,7 @@ repo -name this -quiet:$quiet -action {
         out "{Green:Push merge request} {Yellow:$branch}"
         $message = $branch
         if ($env:GIT_DEFAULT_PROJECT) { $message = "$($env:GIT_DEFAULT_PROJECT)-0 $branch" }
-        save -message $message -nomerge -push -mr -quiet:$quiet
+        save -message $message -nomerge -push -mr -draft -quiet:$quiet
     }
 
     if (confirm "Do you want to remove all newly created branches ($branches) both locally and remotely") {

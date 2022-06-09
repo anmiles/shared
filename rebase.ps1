@@ -18,7 +18,6 @@ Param (
     [switch]$quiet
 )
 
-$commit_message_pattern = [Environment]::GetEnvironmentVariable("COMMIT_MESSAGE_PATTERN", "Process")
 $diff1 = "__rebase1.diff"
 $diff2 = "__rebase2.diff"
 

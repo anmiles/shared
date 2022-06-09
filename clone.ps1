@@ -37,22 +37,38 @@ if (!(Test-Path (Join-Path $destination ".git") -Type Container)) {
     if ($crlf) { git config core.autocrlf true }
 }
 
-if (!$(git remote) -or !$(git remote).Contains("origin")) {
+$remote = git remote
+
+if (!$remote -or !$remote.Contains("origin")) {
     git remote add origin $source
 }
 
-$result = exec git fetch origin
+$env_json_file = Join-Path $env:GIT_ROOT env.json
+$env_json = ConvertFrom-Json (file $env_json_file)
 
-if ($result.exitCode -eq 0) {
-    $default_branch = $(git branch --show-current)
+$result = git fetch origin
+
+if ($LastExitCode -eq 0) {
+    if ($env_json.GIT_DEFAULT_BRANCHES.$name) {
+        $default_branch = $env_json.GIT_DEFAULT_BRANCHES.$name
+    } else {
+        $default_branch = git remote show origin | grep -h "HEAD branch:" | % {$_.Trim().Replace('HEAD branch: ', '')}
+        if ($default_branch -ne $env_json.GIT_DEFAULT_BRANCHES.default) {
+            $env_json.GIT_DEFAULT_BRANCHES | Add-Member -NotePropertyName $name -NotePropertyValue $default_branch
+            Copy-Item $env_json_file "$env_json_file.bak" -Force
+            file $env_json_file ($env_json | ConvertTo-Json)
+            [Environment]::SetEnvironmentVariable("GIT_DEFAULT_BRANCHES", ($env_json.GIT_DEFAULT_BRANCHES | ConvertTo-Json), "Process")
+        }
+    }
+    
     git checkout $default_branch
-    git reset origin/$default_branch
+    git reset --quiet origin/$default_branch
 } else {
     out "{Red:Cannot access repository $name with error:}"
     out $result.err
 
     if (confirm "Do you want to create repository $name") {
-        $default_branch = "master"
+        $default_branch = $env_json.GIT_DEFAULT_BRANCHES.default
         git switch -c $default_branch
         New-Item -Type File .gitignore
         git add .
