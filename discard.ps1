@@ -13,11 +13,11 @@ Param (
 
 repo -name this -quiet:$quiet -action {
     if ($filename) {
-        git reset -- $filename
+        git reset --quiet -- $filename
         git restore $filename
         git clean -fd -- $filename
     } else {
-        git reset
+        git reset --quiet
         git restore *
         git clean -fd
     }

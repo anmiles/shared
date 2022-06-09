@@ -26,19 +26,7 @@ Param (
     [switch]$quiet
 )
 
-$depth = 2
-
-$default_branches = @{
-    default = "master"
-}
-
-($env:GIT_DEFAULT_BRANCHES | ConvertFrom-Json).PSObject.Properties | % {
-    $branch_name = $_.Name
-
-    $_.Value | % {
-        $default_branches[$_] = $branch_name
-    }
-}
+$default_branches = $env:GIT_DEFAULT_BRANCHES | ConvertFrom-Json
 
 Function GetNewBranch ($branch, $quiet) {
     $branches = git branch --format "%(refname:short)" | grep -v "(HEAD detached at "
@@ -109,10 +97,10 @@ Function ChangeBranch($name, [switch]$quiet) {
 Function InvokeRepo($repo, $name) {
     if (!$quiet) { Write-Host $repo -ForegroundColor Yellow }
     Push-Location $repo
+    $default_branch = $default_branches.$name
+    if (!$default_branch) { $default_branch = $default_branches.default }
     $branch = git rev-parse --abbrev-ref HEAD
     $new_branch = GetNewBranch $branch
-    $default_branch = $default_branches[$name]
-    if (!$default_branch) { $default_branch = $default_branches.default }
     Invoke-Command $action
     Pop-Location
 }
@@ -137,16 +125,18 @@ if ($name -and $name -ne "all" -and $name -ne "it") {
 }
 
 if (Test-Path $env:GIT_ROOT) {
-    Get-ChildItem -Path $env:GIT_ROOT -Filter ".git" -Recurse -Directory -Hidden:(!$env:WSL_ROOT) -Depth $depth | foreach {
-        $norepo = Join-Path $_.Parent.FullName ".norepo"
+    Get-ChildItem -Path $env:GIT_ROOT -Filter ".git" -Recurse -Force -Depth $env:GIT_DEPTH | Sort PSIsContainer, FullName | % {
+        $this_repo = Split-Path $_.FullName -Parent
+        $this_name = Split-Path $this_repo -Leaf
+        $norepo = Join-Path $this_repo ".norepo"
 
         if (!(Test-Path $norepo)) {
             if ($name -eq "all") {
-                InvokeRepo -repo $_.Parent.FullName -name $_.Parent.Name
+                InvokeRepo -repo $this_repo -name $this_name
             }
             
-            if ($name -eq $_.Parent.Name) {
-                InvokeRepo -repo $_.Parent.FullName -name $name
+            if ($name -eq $this_name) {
+                InvokeRepo -repo $this_repo -name $this_name
             }
         }
     }

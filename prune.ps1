@@ -31,7 +31,7 @@ repo -name $name -quiet:$quiet -action {
     git remote update --prune
 
     git branch --format "%(refname:short)" | % {
-        git show "remotes/origin/$_" 2>&1 | Out-Null
+        $remote_branch = git branch -a | grep "remotes/origin/$_"
         if (!$? -and (confirm "Delete merged branch {{$_}}")) {
             git branch -D $_
 
