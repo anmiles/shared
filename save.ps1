@@ -141,7 +141,7 @@ repo -name $name -quiet:$quiet -action {
         }
 
         if (!$skip) {
-            git add --all *
+            git add --all .
             
             if ($LastExitCode -ne 0) {
                 out "{Red:Unable to add some files, see error details above}"

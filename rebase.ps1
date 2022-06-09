@@ -42,7 +42,7 @@ repo -name this -new_branch $new_branch -quiet:$quiet -action {
         }
 
         $enter = Read-Host | Out-Null
-        git add --all *
+        git add --all .
         $rebase_head = git show --quiet REBASE_HEAD --format=%h
 
         if ($LastExitCode -ne 0) {
