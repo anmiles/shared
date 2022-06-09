@@ -7,19 +7,23 @@ $scripts_shared = $PSScriptRoot
 $scripts_root = Split-Path $scripts_shared -Parent
 $root = $MyInvocation.PSScriptRoot
 $terraform_root = Join-Path (Split-Path $scripts_root -Parent) "terraform"
-$vars_file = Join-Path $root env.json
-$json = Get-Content $vars_file | ConvertFrom-Json
-$vars = @{}
 
-$json.PSObject.Properties | % {
-    $var = $_
-    $vars[$var.Name] = switch($var.Value) {
-        $null { "" }
-        default {
-            switch ($var.TypeNameOfValue) {
-                "System.String" { $var.Value }
-                "" { $var.Value }
-                default { $var.Value | ConvertTo-Json }
+$vars = @{}
+$vars_file = Join-Path $root env.json
+
+if (Test-Path $vars_file) {
+    $json = Get-Content $vars_file | ConvertFrom-Json
+
+    $json.PSObject.Properties | % {
+        $var = $_
+        $vars[$var.Name] = switch($var.Value) {
+            $null { "" }
+            default {
+                switch ($var.TypeNameOfValue) {
+                    "System.String" { $var.Value }
+                    "" { $var.Value }
+                    default { $var.Value | ConvertTo-Json }
+                }
             }
         }
     }
