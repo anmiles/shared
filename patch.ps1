@@ -34,7 +34,7 @@ repo -new_branch $base -quiet:$quiet -action {
                 git add --all $file
             }
         } else {
-            git add --all *
+            git add --all .
         }
     }
 
