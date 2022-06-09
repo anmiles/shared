@@ -13,26 +13,46 @@ $vars_file = Join-Path $root env.json
 
 if (Test-Path $vars_file) {
     $json = Get-Content $vars_file | ConvertFrom-Json
+    $vars.ENVARS = 
 
     $json.PSObject.Properties | % {
-        $var = $_
-        $vars[$var.Name] = switch($var.Value) {
-            $null { "" }
-            default {
-                switch ($var.TypeNameOfValue) {
-                    "System.String" { $var.Value }
-                    "" { $var.Value }
-                    default { $var.Value | ConvertTo-Json }
-                }
-            }
-        }
+        $vars[$_.Name] = $_.Value
     }
 }
 
-$paths = ($env:PATH -split ";")
-if ($vars.WSL_ROOT) { $paths = $paths | ? { !($_.Contains("\Git\bin\")) }}
-$vars.PATH = ($paths + @($scripts_root, $scripts_shared) + $vars.PATH) -Join ";"
+function global:wsh($command, $arguments){
+    $arguments = $arguments | % {
+        if ($_ -is [string] -and ($_[0] -eq "%" -or $_.Contains(" ") -or $_.Contains("'"))) {
+            return "'$($_ -replace "'", "'\''")'"
+        }
 
+        return $_
+    }
+
+    sh "$command $arguments"
+}
+
+$paths = [System.Collections.ArrayList]($env:PATH -split ";")
+$sourcePaths = @()
+
+if ($vars.WSL_COMMANDS) {
+    $vars.WSL_COMMANDS | % {
+        $commands = Get-Command $_ -All -ErrorAction SilentlyContinue
+
+        if ($commands) {
+            $commands.Source | ? { $_ } | % {
+                $sourcePath = Split-Path $_ -Parent
+                $sourcePaths += $sourcePath
+                $sourcePaths += "$sourcePath\"
+            }
+        }
+
+        iex "function global:$_(){wsh $_ `$args}"
+    }
+}
+
+$paths = $paths | ? { $_ -notin $sourcePaths }
+$vars.PATH = ($paths + @($scripts_root, $scripts_shared) + $vars.PATH) -Join ";"
 $vars.WORKSPACE_NAME = Split-Path $root -Leaf
 $vars.GIT_ROOT = $root
 $vars.SCRIPTS_ROOT = $scripts_root
@@ -40,7 +60,16 @@ $vars.MODULES_ROOT = Join-Path $scripts_root "modules"
 $vars.TERRAFORM_ROOT = $terraform_root
 if (!$vars.PROMPT_COLOR) { $vars.PROMPT_COLOR = "White" }
 
-$vars.Keys | % { [Environment]::SetEnvironmentVariable($_, $vars[$_], "Process") }
+$vars.Keys | % {
+    $value = $vars[$_]
+
+    if (!($value -is [string])) {
+        $value = $value | ConvertTo-Json
+    }
+
+    [Environment]::SetEnvironmentVariable($_, $value, "Process")
+}
+
 [Environment]::SetEnvironmentVariable("ENVARS", $vars.Keys -join ",", "Process")
 
 function global:prompt {
