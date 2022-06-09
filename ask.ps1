@@ -39,8 +39,11 @@ if (!$new_value) { $new_value = Read-Host } else { Write-Host }
 if ($new_value.Count -eq 0 -or $new_value[0].Count -eq 0) {
     $new_value = $default_new_value
 } else {
-    if ($append -and $new_value -match "^\* [^$]") {
-        $new_value = ($value -replace "\s*\* [^\*]*$", "") + " " + $new_value
+    if ($append -and $new_value -match "^\*($| [^$])") {
+        if ($new_value -eq "*") { $new_value = "" }
+            else { $new_value = " " + $new_value }
+
+        $new_value = ($value -replace "\s*\* [^\*]*$", "") + $new_value
     }
 }
 
