@@ -63,26 +63,6 @@ if ($op) {
     exit
 }
 
-if ($aws) {
-    if (!$silent) {
-        Write-Host "Getting $nameString from AWS SSM"
-    }
-
-    $result = iex "aws ssm get-parameters --with-decryption --names $names --profile $aws --output json | ConvertFrom-Json"
-    
-    if (!$?) {
-        $names | % {
-            Set-Variable -Force -Name $_ -Value (ask -new $_) -Scope 1
-        }
-    }
-
-    $result.Parameters | % {
-        Set-Variable -Force -Name $_.Name -Value $_.Value -Scope 1
-    }
-
-    exit
-}
-
 if ($terraform) {
     if (!$silent) { "Getting $nameString from terraform state $terraform" }
     
@@ -141,4 +121,30 @@ if ($terraform) {
 
     exit
 }
+
+if ($aws -or $env:AWS_ACCESS_KEY_ID) {
+    if (!$silent) {
+        Write-Host "Getting $nameString from AWS SSM"
+    }
+
+    $profile = ""
+    if ($aws) { $profile = "--profile $aws" }
+    
+
+    $result = iex "aws ssm get-parameters --with-decryption --names $names $profile --output json | ConvertFrom-Json"
+    
+    if (!$?) {
+        $names | % {
+            Set-Variable -Force -Name $_ -Value (ask -new $_) -Scope 1
+        }
+    }
+
+    $result.Parameters | % {
+        Set-Variable -Force -Name $_.Name -Value $_.Value -Scope 1
+    }
+
+    exit
+}
+
+throw "Please specify at least one of [ op | terraform | state ] arguments or have AWS_ACCESS_KEY_ID set"
 
