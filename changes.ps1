@@ -16,5 +16,5 @@ repo -name this -quiet:$quiet -action {
     $commits = iex "git log --reverse $from..HEAD --pretty=format:%H"
     git checkout $from
     $commits | % { git cherry-pick --mainline 1 --no-commit $_ }
-    git diff
+    git diff HEAD
 }
