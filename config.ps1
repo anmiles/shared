@@ -27,5 +27,13 @@ Param (
 )
 
 repo -name $name -quiet:$quiet -action {
-    code .git/config
+    if (Test-Path .git -PathType Container) {
+        $gitdir = ".git"
+    }
+    
+    if (Test-Path .git -PathType Leaf) {
+        $gitdir = (Get-Content .git) -split "gitdir: "
+    }
+
+    code $gitdir/config
 }
