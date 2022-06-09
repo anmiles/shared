@@ -50,7 +50,7 @@ if ($op) {
 
         if ($result.exitCode -eq 1) {
             if ($result.err.Contains("op signin")) {
-                iex $($env:OP_CODE | op signin --account $op)
+                iex $(Get-Content $env:OP_CODE | op signin --account $op)
                 $result = exec op "item get $_ --fields label=password"
             } else {
                 $result = @{ output = ask -new $_ }
