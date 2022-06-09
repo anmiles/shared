@@ -39,22 +39,25 @@ repo -name $name -quiet:$quiet -action {
     $remote_name = (Split-Path $remote -Leaf).Replace(".git", "")
 
     [System.Net.ServicePointManager]::SecurityProtocol = 'Tls12'
-    $search_url = "https://gitlab.com/api/v4/projects?visibility=private&per_page=100&search=$remote_name"
-    
     Write-Host "Getting access token..."
     vars -op $env:OP_USER -aws $env:AWS_PROFILE -names "gitlab_access_token_amend_$($env:WORKSPACE_NAME)" -silent
     $headers = @{"PRIVATE-TOKEN" = (Get-Variable -Name "gitlab_access_token_amend_$($env:WORKSPACE_NAME)" -Value) }
 
     $projects_all = @()
-    $page = 1
 
     Write-Host "Searching for project..."
-    do {
-        $projects = (Invoke-WebRequest -Headers $headers "$search_url&page=$page").Content | ConvertFrom-Json
-        $projects_all += $projects
-        $page ++
+
+    @("visibility=private", "membership=true") | % {
+        $page = 1
+        $search_url = "https://gitlab.com/api/v4/projects?$_&per_page=100&search=$remote_name"
+
+        do {
+            $projects = (Invoke-WebRequest -Headers $headers "$search_url&page=$page").Content | ConvertFrom-Json
+            $projects_all += $projects
+            $page ++
+        }
+        while ($projects.Length -gt 0)
     }
-    while ($projects.Length -gt 0)
 
     $projects_all | ? { $_.path -eq $remote_name -and $_.ssh_url_to_repo -eq $remote -or $_.http_url_to_repo -eq $remote } | % {
         $protected_branches_url = "https://gitlab.com/api/v4/projects/$($_.id)/protected_branches"
