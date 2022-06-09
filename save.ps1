@@ -79,7 +79,7 @@ repo -name $name -quiet:$quiet -action {
         if (!(confirm "Do you want to ignore problems")) { exit 1 }
     }
 
-    if ($uncommitted -gt 0) {
+    if ($empty -or $uncommitted -gt 0) {
         Write-Host "-------------------------------------------------------------------" -ForegroundColor Yellow
         git status --short --untracked-files --renames
         Write-Host "-------------------------------------------------------------------" -ForegroundColor Yellow
