@@ -63,22 +63,28 @@ repo -name $name -quiet:$quiet -action {
             $protected_branch = (Invoke-WebRequest -Headers $headers $protected_branches_url).Content | ConvertFrom-Json | ? {$_.name -eq $branch}
         } catch {}
 
-        $prev_message = $(git log -n 1 --first-parent $branch --pretty=format:%B)
+        $uncommitted_list = $(git status --short --untracked-files --renames)
 
-        while (!$message -or $message -eq "diff" -or $message -eq "difftool" -or $message -eq "?" -or $message -eq "??") {
-            $message = ask -value $prev_message -old "Wrong commit message" -new "Right commit message" -append
+        if ($uncommitted_list.Count) {
+            $prev_message = $(git log -n 1 --first-parent $branch --pretty=format:%B)
 
-            if ($message -eq "diff" -or $message -eq "?") {
-                git diff HEAD
-            }
+            while (!$message -or $message -eq "diff" -or $message -eq "difftool" -or $message -eq "?" -or $message -eq "??") {
+                $message = ask -value $prev_message -old "Wrong commit message" -new "Right commit message" -append
 
-            if ($message -eq "difftool" -or $message -eq "??") {
-                git difftool -d HEAD
+                if ($message -eq "diff" -or $message -eq "?") {
+                    git diff HEAD
+                }
+
+                if ($message -eq "difftool" -or $message -eq "??") {
+                    git difftool -d HEAD
+                }
             }
         }
 
         if ($message -ne "skip" -and $message -ne "-" -and $message -ne "merge") {
-            git commit --amend -m ($message -replace '"', "'")
+            if ($message) {
+                git commit --amend -m ($message -replace '"', "'")
+            }
 
             if ($protected_branch) {
                 Write-Host "Unprotecting branch..."
