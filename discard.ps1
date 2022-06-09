@@ -18,7 +18,7 @@ repo -name this -quiet:$quiet -action {
         git clean -fd -- $filename
     } else {
         git reset --quiet
-        git restore *
+        git restore .
         git clean -fd
     }
 }
