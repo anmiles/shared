@@ -63,6 +63,22 @@ $commit_message_pattern = switch($env:COMMIT_MESSAGE_STRICT) {
 }
 
 repo -name $name -quiet:$quiet -action {
+    function GetPrevMessage {
+        $offset = 0
+        $prev_message = ""
+
+        while (!$prev_message -or $prev_message.StartsWith("Merge branch") -or $prev_message -match '^\d+\.\d+\.\d+$') {
+            $prev_message = $(git log --first-parent $branch --skip $offset -n 1 --pretty=format:%B) -split "`n" | Select -First 1
+            $offset = $offset + 1
+            if ($prev_message.StartsWith("Merge branch") -and $prev_message.Contains(" into '$default_branch'")) {
+                $prev_message = ""
+                break
+            }
+        }
+
+        return $prev_message
+    }
+
     $uncommitted_list = $(git status --short --untracked-files --renames)
     $uncommitted = $uncommitted_list.Count
 
@@ -87,14 +103,7 @@ repo -name $name -quiet:$quiet -action {
         $skip = $false
 
         if ($unmerged -eq 0) {
-            $offset = 0
-            $prev_message = ""
-
-            while (!$prev_message -or $prev_message.StartsWith("Merge branch") -or $prev_message -match '^\d+\.\d+\.\d+$') {
-                $prev_message = $(git log --first-parent $branch --skip $offset -n 1 --pretty=format:%B)
-                $offset = $offset + 1
-            }
-
+            $prev_message = GetPrevMessage
             $ready = $false
             
             while (!$ready) {
@@ -189,13 +198,7 @@ repo -name $name -quiet:$quiet -action {
             $arguments += "-o merge_request.create"
 
             if (!$message) {
-                $offset = 0
-                $prev_message = ""
-
-                while (!$prev_message -or $prev_message.StartsWith("Merge branch") -or $prev_message -match '^\d+\.\d+\.\d+$') {
-                    $prev_message = $(git log --first-parent $branch --skip $offset -n 1 --pretty=format:%B)
-                    $offset = $offset + 1
-                }
+                $prev_message = GetPrevMessage
                 $message = ask -value $prev_message -old "Prev commit message" -new "Next commit message" -append
             }
 
