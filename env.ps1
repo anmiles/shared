@@ -69,7 +69,7 @@ Function ExpandTags($obj, $tags){
     }
 
     $obj.PSObject.Properties.Remove("Tags")
-    
+
     if ($action -ne "list" -and ($tags | ? { $_.Key -eq "Environment" }).Value -eq "live") {
         return;
     }
@@ -173,7 +173,7 @@ if ($action -eq "list") {
     $ec2_instances = GetEC2Instances
     $rds_instances = GetRDSInstances
     $eip_addresses = GetEIPAddresses
-    
+
     Write-Host "EC2 instances..." -ForegroundColor DarkYellow
     OutputInstances $ec2_instances "EC2"
 
@@ -203,15 +203,15 @@ if ($action -eq "list") {
 
                 $applies += $ec2_instances | % { "$($_.Type).$($_.Environment)" }
             }
-            
+
             $rds_instances = $rds_instances | ? {$_.State -eq "stopped" -and (!$rds -or $ec2_running_instances.Environment.Contains($_.Environment))}
-            
+
             $rds_instances | % {
                 Write-Host "Starting RDS instances [$($_.Name)] ..."
                 if (!$simulate) { $result = aws rds start-db-instance --db-instance-identifier $_.Id }
             }
         }
-        
+
         "stop" {
             $ec2_instances = $ec2_instances | ? {$_.State -eq "running"}
 
@@ -220,7 +220,7 @@ if ($action -eq "list") {
                 if (!$simulate) { $result = aws ec2 stop-instances --instance-ids $ec2_instances.Id }
             }
 
-            $rds_instances = $rds_instances | ? {$_.State -eq "available" -and (!$rds -or !$ec2_running_instances -or !$ec2_running_instances.Environment.Contains($_.Environment))}
+            $rds_instances = $rds_instances | ? {$_.State -eq "available" -and (!$rds -or !$ec2_running_instances -or !$ec2_running_instances.Environment -or !$ec2_running_instances.Environment.Contains($_.Environment))}
 
             $rds_instances | % {
                 Write-Host "Stopping RDS instances [$($_.Name)] ..."
@@ -251,14 +251,14 @@ if ($action -eq "list") {
                     $eip = allocate -name $ec2_instance.Name
                     $association = aws ec2 associate-address --network-interface-id $result[0][0].NetworkInterfaces[0].NetworkInterfaceId --allocation-id $eip.AllocationId
                     $ip = $eip.PublicIp
-                    
+
                     $result[0][0].NetworkInterfaces | % {
                         if ($_.Association.IpOwnerId -ne "amazon") {
                             deallocate $_.Association.PublicIp
                         }
                     }
                 }
-                
+
                 Write-Host $ip -ForegroundColor DarkYellow
 
                 $hosts = [HostsFile]::new()
