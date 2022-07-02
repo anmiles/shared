@@ -49,7 +49,7 @@ if ($op) {
         $result = exec op "item get $_ --fields label=password"
 
         if ($result.exitCode -eq 1) {
-            if ($result.err.Contains("op signin")) {
+            if ($result.err.Contains("op signin") -or $result.err.Contains("sign in")) {
                 iex $(Get-Content $env:OP_CODE | op signin --account $op)
                 $result = exec op "item get $_ --fields label=password"
             } else {
