@@ -13,7 +13,6 @@ $vars_file = Join-Path $root env.json
 
 if (Test-Path $vars_file) {
     $json = Get-Content $vars_file | ConvertFrom-Json
-    $vars.ENVARS = 
 
     $json.PSObject.Properties | % {
         $vars[$_.Name] = $_.Value
@@ -35,20 +34,30 @@ function global:wsh($command, $arguments){
 $paths = [System.Collections.ArrayList]($env:PATH -split ";")
 $sourcePaths = @()
 
+$wslCommands = @()
+
 if ($vars.WSL_COMMANDS) {
-    $vars.WSL_COMMANDS | % {
-        $commands = Get-Command $_ -All -ErrorAction SilentlyContinue
+    $wslCommands += $vars.WSL_COMMANDS
+}
 
-        if ($commands) {
-            $commands.Source | ? { $_ } | % {
-                $sourcePath = Split-Path $_ -Parent
-                $sourcePaths += $sourcePath
-                $sourcePaths += "$sourcePath\"
-            }
+if ($vars.WSL_COMMANDS_NODE) {
+    $node = npm config get prefix
+    $wslCommands += Get-ChildItem $node -File | % { $_.Name } | ? { $_ -notmatch '\.' }
+    $wslCommands += (& "C:\Windows\system32\bash.exe" "-c" "ls ``dirname \``which node\````")
+}
+
+$wslCommands | Get-Unique | % {
+    $commands = Get-Command $_ -All -ErrorAction SilentlyContinue
+
+    if ($commands) {
+        $commands.Source | ? { $_ } | % {
+            $sourcePath = Split-Path $_ -Parent
+            $sourcePaths += $sourcePath
+            $sourcePaths += "$sourcePath\"
         }
-
-        iex "function global:$_(){wsh $_ `$args}"
     }
+
+    iex "function global:$_(){wsh $_ `$args}"
 }
 
 $paths = $paths | ? { $_ -notin $sourcePaths }
