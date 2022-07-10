@@ -34,29 +34,35 @@ function global:wsh($command, $arguments){
 $paths = [System.Collections.ArrayList]($env:PATH -split ";")
 $sourcePaths = @()
 
-$wslCommands = @()
-
-if ($vars.WSL_COMMANDS) {
-    $wslCommands += $vars.WSL_COMMANDS
-}
-
-if ($vars.WSL_COMMANDS_NODE) {
-    $node = npm config get prefix
-    $wslCommands += Get-ChildItem $node -File | % { $_.Name } | ? { $_ -notmatch '\.' }
-    $wslCommands += (& "C:\Windows\system32\bash.exe" "-c" "ls ``dirname \``which node\````")
-}
-
-$wslCommands | Get-Unique | % {
-    $commands = Get-Command $_ -All -ErrorAction SilentlyContinue
-
-    if ($commands) {
-        $commands.Source | ? { $_ } | % {
-            $sourcePath = Split-Path $_ -Parent
-            $sourcePaths += $sourcePath
-            $sourcePaths += "$sourcePath\"
-        }
+if ($env:WSL_COMMANDS) {
+    $vars.WSL_COMMANDS = $env:WSL_COMMANDS | ConvertFrom-Json
+} else {
+    if (!$vars.WSL_COMMANDS) {
+        $vars.WSL_COMMANDS = @()
     }
 
+    if ($vars.WSL_COMMANDS_NODE) {
+        $node = npm config get prefix
+        $vars.WSL_COMMANDS += Get-ChildItem $node -File | % { $_.Name } | ? { $_ -notmatch '\.' }
+        $vars.WSL_COMMANDS += (& "C:\Windows\system32\bash.exe" "-c" "ls ``dirname \``which node\````")
+    }
+
+    $vars.WSL_COMMANDS = $vars.WSL_COMMANDS | Get-Unique
+
+    $vars.WSL_COMMANDS | % {
+        $commands = Get-Command $_ -All -ErrorAction SilentlyContinue
+
+        if ($commands) {
+            $commands.Source | ? { $_ } | % {
+                $sourcePath = Split-Path $_ -Parent
+                $sourcePaths += $sourcePath
+                $sourcePaths += "$sourcePath\"
+            }
+        }
+    }
+}
+
+$vars.WSL_COMMANDS | % {
     iex "function global:$_(){wsh $_ `$args}"
 }
 
