@@ -22,10 +22,11 @@ Param (
     [switch]$quiet = $true
 )
 
-$temp_file = "patch.patch"
-$directory = ".patch"
-
 repo -new_branch $base -quiet:$quiet -action {
+    $temp_file = "patch.patch"
+    $patch_root = Join-Path $env:GIT_ROOT ".patch"
+    $directory = Join-Path $patch_root $repo.Replace($env:GIT_ROOT, "")
+
     $command = switch($R) {$true {"git diff -R"} $false {"git diff"}}
 
     if (git status --short --untracked-files --renames) {
@@ -52,11 +53,11 @@ repo -new_branch $base -quiet:$quiet -action {
     $rev = 0
 
     if ($to) {
-        $patch_subdir = "$directory/$to"
+        $patch_subdir = Join-Path $directory $to
     } else {
         do {
             $revString = switch($rev){ 0 {""} default {"-$_"} }
-            $patch_subdir = "$directory/$branch$revString"
+            $patch_subdir = Join-Path $directory $branch$revString
             $rev++
         } while (Test-Path $patch_subdir)
     }
@@ -66,12 +67,10 @@ repo -new_branch $base -quiet:$quiet -action {
     $patch -split '(?=diff \-\-git)' | ? { $_ } | % {
         $_ -match 'diff \-\-git (a|b)\/(.*) (b|a)\/(.*)' | Out-Null
         $path = $matches[2] -replace '[\/\\]', "_"
-        $dest = "$patch_subdir/$path.patch"
-        file (Join-Path $repo $dest) $_
+        $dest = Join-Path $patch_subdir "$path.patch"
+        file $dest $_
         out "{Yellow:$dest}"
     }
-
-    Copy-Item -Recurse -Force $directory/* $env:GIT_ROOT/.patch
 
     if ($base -eq "HEAD" -and !$keep) {
         discard $file -quiet
