@@ -34,7 +34,7 @@
 
 Param (
     [ValidateSet('start', 'stop', 'list')][string]$action,
-    [Parameter(ValueFromRemainingArguments = $true)][string[]]$filters,
+    [Parameter(ValueFromRemainingArguments = $true)][string[]]$names,
     [switch]$simulate,
     [switch]$rds,
     [switch]$apply,
@@ -43,7 +43,7 @@ Param (
 
 Import-Module $env:MODULES_ROOT\iis.ps1 -Force
 
-if ($action -eq "start" -and $filters.Length -eq 0) {
+if ($action -eq "start" -and $names.Length -eq 0) {
     throw "Should specify filters"
 }
 
@@ -63,8 +63,8 @@ Function ExpandTags($obj, $tags){
     foreach ($tag in $tags) {
         Add-Member -InputObject $obj -NotePropertyName $tag.Key -NotePropertyValue $tag.Value -Force
 
-        $filters | % {
-            if ($tag.Key -ne "Name" -and $_ -eq $tag.Value) { $matched_filters[$_] = $_ }
+        $names | % {
+            if ($tag.Key -ne "Name" -and $tag.Value -eq $_) { $matched_filters[$_] = $_ }
         }
     }
 
@@ -74,7 +74,7 @@ Function ExpandTags($obj, $tags){
         return;
     }
 
-    if ($matched_filters.Keys.Count -eq $filters.Length) { return $obj }
+    if ($matched_filters.Keys.Count -eq $names.Length) { return $obj }
 }
 
 Function GetEC2Instances() {
@@ -234,7 +234,7 @@ if ($action -eq "list") {
         "RDS" = switch($action){"start" { "available" } "stop" { "stopped" }}
     }
 
-    if (!$rds) {
+    if (!$rds -and !$simulate) {
         foreach ($ec2_instance in $ec2_instances) {
             Write-Host "Waiting until EC2 instance [$($ec2_instance.Name)] state is '$($waiting_states.EC2)'..."
             $query = "Reservations[*].Instances[*].{Id:InstanceId,State:State.Name,NetworkInterfaces:NetworkInterfaces[*].{Association:Association.{PublicIp:PublicIp,IpOwnerId:IpOwnerId},NetworkInterfaceId:NetworkInterfaceId}}"
@@ -287,4 +287,12 @@ if ($action -eq "list") {
     }
 
     Write-Host "Done!"
+
+    if ($action -eq "start") {
+        push "[$names] started" -title "Env"
+    }
+
+    if ($action -eq "stop") {
+        push "[$names] stopped" -title "Env"
+    }
 }
