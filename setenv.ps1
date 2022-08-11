@@ -55,7 +55,9 @@ if ($env:WSL_COMMANDS) {
         $vars.WSL_COMMANDS += (& "C:\Windows\system32\bash.exe" "-c" "ls ``dirname \``which node\````")
     }
 
-    $vars.WSL_COMMANDS = $vars.WSL_COMMANDS | Get-Unique
+    if ($vars.WSL_COMMANDS.Length) {
+        $vars.WSL_COMMANDS = $vars.WSL_COMMANDS | Get-Unique
+    }
 
     $vars.WSL_COMMANDS | % {
         $commands = Get-Command $_ -All -ErrorAction SilentlyContinue
