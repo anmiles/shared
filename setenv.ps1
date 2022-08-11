@@ -19,6 +19,14 @@ if (Test-Path $vars_file) {
     }
 }
 
+Function global:shpath([string]$path, [switch]$native) {
+    if (!$path) { return $path }
+    if ($native -and $env:WSL_ROOT) { $path = $path.Replace($env:GIT_ROOT, $env:WSL_ROOT) }
+    $drive, $dir = $path -split ":"
+    if (!$dir) { return $path -replace '\\', '/' -replace ' ', '\ ' }
+    return $root + $drive.ToLower() + $dir -replace '\\', '/' -replace ' ', '\ '
+}
+
 function global:wsh($command, $arguments){
     $arguments = $arguments | % {
         if ($_ -is [string] -and ($_[0] -eq "%" -or $_.Contains(" ") -or $_.Contains("'"))) {
@@ -34,29 +42,37 @@ function global:wsh($command, $arguments){
 $paths = [System.Collections.ArrayList]($env:PATH -split ";")
 $sourcePaths = @()
 
-$wslCommands = @()
-
-if ($vars.WSL_COMMANDS) {
-    $wslCommands += $vars.WSL_COMMANDS
-}
-
-if ($vars.WSL_COMMANDS_NODE) {
-    $node = npm config get prefix
-    $wslCommands += Get-ChildItem $node -File | % { $_.Name } | ? { $_ -notmatch '\.' }
-    $wslCommands += (& "C:\Windows\system32\bash.exe" "-c" "ls ``dirname \``which node\````")
-}
-
-$wslCommands | Get-Unique | % {
-    $commands = Get-Command $_ -All -ErrorAction SilentlyContinue
-
-    if ($commands) {
-        $commands.Source | ? { $_ } | % {
-            $sourcePath = Split-Path $_ -Parent
-            $sourcePaths += $sourcePath
-            $sourcePaths += "$sourcePath\"
-        }
+if ($env:WSL_COMMANDS) {
+    $vars.WSL_COMMANDS = $env:WSL_COMMANDS | ConvertFrom-Json
+} else {
+    if (!$vars.WSL_COMMANDS) {
+        $vars.WSL_COMMANDS = @()
     }
 
+    if ($vars.WSL_COMMANDS_NODE) {
+        $node = npm config get prefix
+        $vars.WSL_COMMANDS += Get-ChildItem $node -File | % { $_.Name } | ? { $_ -notmatch '\.' }
+        $vars.WSL_COMMANDS += (& "C:\Windows\system32\bash.exe" "-c" "ls ``dirname \``which node\````")
+    }
+
+    if ($vars.WSL_COMMANDS.Length) {
+        $vars.WSL_COMMANDS = $vars.WSL_COMMANDS | Get-Unique
+    }
+
+    $vars.WSL_COMMANDS | % {
+        $commands = Get-Command $_ -All -ErrorAction SilentlyContinue
+
+        if ($commands) {
+            $commands.Source | ? { $_ } | % {
+                $sourcePath = Split-Path $_ -Parent
+                $sourcePaths += $sourcePath
+                $sourcePaths += "$sourcePath\"
+            }
+        }
+    }
+}
+
+$vars.WSL_COMMANDS | % {
     iex "function global:$_(){wsh $_ `$args}"
 }
 
