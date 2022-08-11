@@ -42,6 +42,7 @@ repo -new_branch $base -quiet:$quiet -action {
     $diff = $file
     if ($diff) { $diff = "-- '$diff'" }
 
+    out "$command $new_branch $diff > $temp_file"
     sh "$command $new_branch $diff > $temp_file"
 
     $patch = file (Join-Path $repo $temp_file)
