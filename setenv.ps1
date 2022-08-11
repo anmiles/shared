@@ -19,6 +19,14 @@ if (Test-Path $vars_file) {
     }
 }
 
+Function global:shpath([string]$path, [switch]$native) {
+    if (!$path) { return $path }
+    if ($native -and $env:WSL_ROOT) { $path = $path.Replace($env:GIT_ROOT, $env:WSL_ROOT) }
+    $drive, $dir = $path -split ":"
+    if (!$dir) { return $path -replace '\\', '/' -replace ' ', '\ ' }
+    return $root + $drive.ToLower() + $dir -replace '\\', '/' -replace ' ', '\ '
+}
+
 function global:wsh($command, $arguments){
     $arguments = $arguments | % {
         if ($_ -is [string] -and ($_[0] -eq "%" -or $_.Contains(" ") -or $_.Contains("'"))) {
