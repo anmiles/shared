@@ -269,13 +269,19 @@ if ($action -eq "destroy") { [Environment]::SetEnvironmentVariable("TF_WARN_OUTP
 
 $timer.StartTask($action)
 
-terraform $action $approve `
--var-file="$tfvars_default" `
--var-file="$tfvars_state" `
--var-file="$tfvars_environment" `
--var "name=$state" `
--var "environment_name=$environment_name" `
-$targets
+try {
+    terraform $action $approve `
+    -var-file="$tfvars_default" `
+    -var-file="$tfvars_state" `
+    -var-file="$tfvars_environment" `
+    -var "name=$state" `
+    -var "environment_name=$environment_name" `
+    $targets
+
+    push "Done $action $state" -title "Terraform"
+} catch {
+    push "Failed $action $state" -title "Terraform" -status error
+}
 
 $timer.FinishTask()
 
@@ -283,3 +289,5 @@ if ($action -eq "destroy") { [Environment]::SetEnvironmentVariable("TF_WARN_OUTP
 
 Pop-Location
 $timer.Finish()
+
+
