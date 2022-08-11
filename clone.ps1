@@ -27,32 +27,51 @@ $destination = Join-Path $env:GIT_ROOT $destination_name
 out "Will clone {Green:$source} into {Green:$destination}"
 
 if (!(Test-Path $destination -Type Container)) {
+    out "{Yellow: > create directory $destination}"
     [void](New-Item -Type Directory $destination -Force)
 }
 
 Push-Location $destination
 
 if (!(Test-Path (Join-Path $destination ".git") -Type Container)) {
+    out "{Yellow: > initialize git directory}"
     git init
-    if ($crlf) { git config core.autocrlf true }
+    
+    if ($crlf) {
+        out "{Yellow: > set core.autocrlf to true}"
+        git config core.autocrlf true
+    }
 }
 
+out "{Yellow: > get remote}"
 $remote = git remote
 
 if (!$remote -or !$remote.Contains("origin")) {
+    out "{Yellow: > create remote}"
     git remote add origin $source
 }
 
+out "{Yellow: > get default branches}"
 $env_json_file = Join-Path $env:GIT_ROOT env.json
 $env_json = ConvertFrom-Json (file $env_json_file)
 
+out "{Yellow: > fetch origin}"
 $result = git fetch origin
 
 if ($LastExitCode -eq 0) {
+    $default_branch_exists = $true
+    
     if ($env_json.GIT_DEFAULT_BRANCHES.$name) {
         $default_branch = $env_json.GIT_DEFAULT_BRANCHES.$name
     } else {
+        out "{Yellow: > get default branch}"
         $default_branch = git remote show origin | grep -h "HEAD branch:" | % {$_.Trim().Replace('HEAD branch: ', '')}
+
+        if ($default_branch -eq "(unknown)") {
+            $default_branch_exists = $false
+            $default_branch = $env_json.GIT_DEFAULT_BRANCHES.default
+        }
+
         if ($default_branch -ne $env_json.GIT_DEFAULT_BRANCHES.default) {
             $env_json.GIT_DEFAULT_BRANCHES | Add-Member -NotePropertyName $name -NotePropertyValue $default_branch
             Copy-Item $env_json_file "$env_json_file.bak" -Force
@@ -60,19 +79,36 @@ if ($LastExitCode -eq 0) {
             [Environment]::SetEnvironmentVariable("GIT_DEFAULT_BRANCHES", ($env_json.GIT_DEFAULT_BRANCHES | ConvertTo-Json), "Process")
         }
     }
-    
-    git checkout $default_branch
-    git reset --quiet origin/$default_branch
+
+    if ($default_branch_exists) {
+        out "{Yellow: > checkout}"
+        "git checkout $default_branch"
+        git checkout $default_branch
+        out "{Yellow: > reset}"
+        "git reset --quiet origin/$default_branch"
+        git reset --quiet origin/$default_branch
+    } else {
+        out "{Yellow: > switch to $default_branch}"
+        git switch -c $default_branch
+        out "{Yellow: > commit}"
+        git commit --allow-empty -m "Initial commit"
+        out "{Yellow: > push}"
+        git push -u origin $default_branch
+    }
 } else {
     out "{Red:Cannot access repository $name with error:}"
     out $result.err
 
     if (confirm "Do you want to create repository $name") {
         $default_branch = $env_json.GIT_DEFAULT_BRANCHES.default
+        out "{Yellow: > switch to $default_branch}"
         git switch -c $default_branch
         New-Item -Type File .gitignore
+        out "{Yellow: > add files}"
         git add .
+        out "{Yellow: > commit}"
         git commit -m "Initial commit"
+        out "{Yellow: > push}"
         git push -u origin $default_branch
     } else {
         exit 1
@@ -80,5 +116,6 @@ if ($LastExitCode -eq 0) {
 }
 
 [Environment]::SetEnvironmentVariable("RECENT_REPO", $destination_name, "Process")
+out "{Yellow: > check packages}"
 check-packages
 goto it
