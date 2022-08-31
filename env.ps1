@@ -18,6 +18,8 @@
     Whether to apply instances after starting
 .PARAMETER new
     Whether to attach new public IP to instance
+.PARAMETER noUI
+    Whether to not show UI notifications
 .EXAMPLE
     env list
     # list all instances
@@ -38,7 +40,8 @@ Param (
     [switch]$simulate,
     [switch]$rds,
     [switch]$apply,
-    [switch]$new
+    [switch]$new,
+    [switch]$noUI
 )
 
 Import-Module $env:MODULES_ROOT\iis.ps1 -Force
@@ -288,11 +291,13 @@ if ($action -eq "list") {
 
     Write-Host "Done!"
 
-    if ($action -eq "start") {
-        push "[$names] started" -title "Env"
-    }
+    if (!$noUI) {
+        if ($action -eq "start") {
+            push "[$names] started" -title "Env"
+        }
 
-    if ($action -eq "stop") {
-        push "[$names] stopped" -title "Env"
+        if ($action -eq "stop") {
+            push "[$names] stopped" -title "Env"
+        }
     }
 }
