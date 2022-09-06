@@ -18,10 +18,9 @@ Param (
     [switch]$crlf
 )
 
-$gitlab_host = $env:GIT_REMOTE_PREFIX + "gitlab.com"
 $gitlab_group = Split-Path $env:GIT_ROOT -Leaf
 if ($private) { $gitlab_group = "anmiles_$gitlab_group" }
-$source = "git@$($gitlab_host):$gitlab_group/$name.git"
+$source = "git@gitlab.com:$gitlab_group/$name.git"
 $destination = Join-Path $env:GIT_ROOT $destination_name
 
 out "Will clone {Green:$source} into {Green:$destination}"
@@ -36,7 +35,7 @@ Push-Location $destination
 if (!(Test-Path (Join-Path $destination ".git") -Type Container)) {
     out "{Yellow: > initialize git directory}"
     git init
-    
+
     if ($crlf) {
         out "{Yellow: > set core.autocrlf to true}"
         git config core.autocrlf true
@@ -60,7 +59,7 @@ $result = git fetch origin
 
 if ($LastExitCode -eq 0) {
     $default_branch_exists = $true
-    
+
     if ($env_json.GIT_DEFAULT_BRANCHES.$name) {
         $default_branch = $env_json.GIT_DEFAULT_BRANCHES.$name
     } else {

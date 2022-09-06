@@ -50,9 +50,10 @@ if ($env:WSL_COMMANDS) {
     }
 
     if ($vars.WSL_COMMANDS_NODE) {
-        $node = npm config get prefix
-        $vars.WSL_COMMANDS += Get-ChildItem $node -File | % { $_.Name } | ? { $_ -notmatch '\.' }
-        $vars.WSL_COMMANDS += (& "C:\Windows\system32\bash.exe" "-c" "ls ``dirname \``which node\````")
+        $vars.WSL_COMMANDS += @("node")
+        $vars.WSL_COMMANDS += Get-ChildItem $vars.WSL_NPM_GLOBAL -Recurse -Depth 1 | ? { $_.Name -eq "package.json" } | % {
+            (Get-Content $_.FullName | ConvertFrom-Json).bin.PSObject.Properties.Name
+        }
     }
 
     if ($vars.WSL_COMMANDS.Length) {

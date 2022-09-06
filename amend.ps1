@@ -34,8 +34,6 @@ Param (
 
 repo -name $name -quiet:$quiet -action {
     $remote = git config --get remote.origin.url
-    if ($env:GIT_REMOTE_PREFIX) { $remote = $remote.Replace($env:GIT_REMOTE_PREFIX, "") }
-
     $remote_name = (Split-Path $remote -Leaf).Replace(".git", "")
 
     [System.Net.ServicePointManager]::SecurityProtocol = 'Tls12'
@@ -97,7 +95,7 @@ repo -name $name -quiet:$quiet -action {
 
             Write-Host "Force pushing..."
             git push --force origin HEAD:refs/heads/$branch
-            
+
             if ($protected_branch) {
                 Write-Host "Protecting branch..."
                 $protect_branch_url = "$($protected_branches_url)?name=$branch&push_access_level=40&merge_access_level=40&unprotect_access_level=40"
