@@ -27,7 +27,12 @@ out "Will clone {Green:$source} into {Green:$destination}"
 
 if (!(Test-Path $destination -Type Container)) {
     out "{Yellow: > create directory $destination}"
-    [void](New-Item -Type Directory $destination -Force)
+
+    if ($env:WSL_ROOT) {
+        sh "mkdir $env:WSL_ROOT/$destination_name"
+    } else {
+        [void](New-Item -Type Directory $destination -Force)
+    }
 }
 
 Push-Location $destination

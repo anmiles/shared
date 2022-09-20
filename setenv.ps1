@@ -50,7 +50,7 @@ if ($env:WSL_COMMANDS) {
     }
 
     if ($vars.WSL_COMMANDS_NODE -and $vars.WSL_NODE_MODULES) {
-        $vars.WSL_COMMANDS += @("node")
+        $vars.WSL_COMMANDS += @("node", "npm")
         $vars.WSL_COMMANDS += Get-ChildItem $vars.WSL_NODE_MODULES -Recurse -Depth 1 | ? { $_.Name -eq "package.json" } | % {
             (Get-Content $_.FullName | ConvertFrom-Json).bin.PSObject.Properties.Name
         }
