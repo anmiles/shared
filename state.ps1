@@ -108,7 +108,7 @@ if ($state -eq "web") {
 
     $version_keys = @("ami_version", "web_version")
     $version_keys_tags = @("AmiVersion", "WebVersion")
-    $tagValues = ec2-tags $version_keys_tags -type $state -environment $environment_name
+    $tagValues = ec2-tags $version_keys_tags -type $state -environment $environment_name -silent
     $version_keys_found = @()
 
     @($tfvars_default, $tfvars_state, $tfvars_environment) | % {
@@ -124,17 +124,23 @@ if ($state -eq "web") {
     }
 
     if ($new -and !$targets -and $version_keys_found.Length) {
+        out ""
+
         $version_keys_found | % {
             $found = $_.Value
             $existing = $tagValues[$version_keys.IndexOf($_.Key)]
-            
+
             if ($found -eq $existing) {
-                if (!(confirm "Allow new {{$state.$environment_name}} environment to re-use the same {{$($_.Key)}} = {{$found}} as existing one")) {
+                out "$($_.Key): {Yellow:$existing} => {Yellow:$found}" -NoNewLine
+                if (!(confirm " reuse")) {
                     out "Please update {Green:$($_.Key)} in {Green:$($_.Filename)} and try again"
                     exit
                 }
+            } else {
+                out "$($_.Key): {Yellow:$existing} => {Green:$found}"
             }
         }
+        out ""
     }
 
     $timer.FinishTask()
