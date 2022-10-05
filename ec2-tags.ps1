@@ -7,6 +7,8 @@
     State name
 .PARAMETER environment
     Environment name
+.PARAMETER silent
+    If specified - do not show information messages
 .EXAMPLE
     ec2-tags WebVersion
     # get value of the tag WebVersion for live web instance
@@ -18,7 +20,8 @@
 Param (
     [Parameter(Mandatory = $true)][string[]]$tagNames,
     [string]$type = "web",
-    [string]$environment = "live"
+    [string]$environment = "live",
+    [switch]$silent
 )
 
 $filters = @{
@@ -26,7 +29,9 @@ $filters = @{
     Environment = $environment
 }
 
-out "{Green:Getting $($tagNames -Join ", ") for $type.$environment...} " -NoNewline;
+if (!$silent) {
+    out "{Green:Getting $($tagNames -Join ", ") for $type.$environment...} " -NoNewline
+}
 
 $filters = $filters.Keys | % { "Name=tag:$_,Values=$($filters[$_])" }
 $query = "Addresses[*].InstanceId"
@@ -39,7 +44,9 @@ $tagValues = $(aws ec2 describe-instances --instance-id $instanceId --query $que
 
 $result = @()
 
-out (($tagNames | % { $tagValues.$_ }) -Join ", ") -ForegroundColor Yellow -NoNewline
-out " "
+if (!$silent) {
+    out (($tagNames | % { $tagValues.$_ }) -Join ", ") -ForegroundColor Yellow -NoNewline
+    out " "
+}
 
 return $tagNames | % { $tagValues.$_ }
