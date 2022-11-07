@@ -50,7 +50,7 @@ repo -name $name -quiet:$quiet -action {
         $search_url = "https://gitlab.com/api/v4/projects?$_&per_page=100&search=$remote_name"
 
         do {
-            $projects = (Invoke-WebRequest -Headers $headers "$search_url&page=$page").Content | ConvertFrom-Json
+            $projects = (Invoke-WebRequest -Headers $headers "$search_url&page=$page" -UseBasicParsing).Content | ConvertFrom-Json
             $projects_all += $projects
             $page ++
         }
@@ -61,24 +61,22 @@ repo -name $name -quiet:$quiet -action {
         $protected_branches_url = "https://gitlab.com/api/v4/projects/$($_.id)/protected_branches"
 
         try {
-            $protected_branch = (Invoke-WebRequest -Headers $headers $protected_branches_url).Content | ConvertFrom-Json | ? {$_.name -eq $branch}
+            $protected_branch = (Invoke-WebRequest -Headers $headers $protected_branches_url -UseBasicParsing).Content | ConvertFrom-Json | ? {$_.name -eq $branch}
         } catch {}
 
         $uncommitted_list = $(git status --short --untracked-files --renames)
 
-        if ($uncommitted_list.Count) {
-            $prev_message = $(git log -n 1 --first-parent $branch --pretty=format:%B)
+        $prev_message = $(git log -n 1 --first-parent $branch --pretty=format:%B)
 
-            while (!$message -or $message -eq "diff" -or $message -eq "difftool" -or $message -eq "?" -or $message -eq "??") {
-                $message = ask -value $prev_message -old "Wrong commit message" -new "Right commit message" -append
+        while (!$message -or $message -eq "diff" -or $message -eq "difftool" -or $message -eq "?" -or $message -eq "??") {
+            $message = ask -value $prev_message -old "Wrong commit message" -new "Right commit message" -append
 
-                if ($message -eq "diff" -or $message -eq "?") {
-                    git diff HEAD
-                }
+            if ($message -eq "diff" -or $message -eq "?") {
+                git diff HEAD
+            }
 
-                if ($message -eq "difftool" -or $message -eq "??") {
-                    git difftool -d HEAD
-                }
+            if ($message -eq "difftool" -or $message -eq "??") {
+                git difftool -d HEAD
             }
         }
 
@@ -90,7 +88,7 @@ repo -name $name -quiet:$quiet -action {
             if ($protected_branch) {
                 Write-Host "Unprotecting branch..."
                 $unprotect_branch_url = "$protected_branches_url/$branch"
-                $result = Invoke-WebRequest -Method Delete -Headers $headers $unprotect_branch_url
+                $result = Invoke-WebRequest -Method Delete -Headers $headers -UseBasicParsing $unprotect_branch_url 
             }
 
             Write-Host "Force pushing..."
@@ -99,7 +97,7 @@ repo -name $name -quiet:$quiet -action {
             if ($protected_branch) {
                 Write-Host "Protecting branch..."
                 $protect_branch_url = "$($protected_branches_url)?name=$branch&push_access_level=40&merge_access_level=40&unprotect_access_level=40"
-                $result = Invoke-WebRequest -Method Post -Headers $headers $protect_branch_url
+                $result = Invoke-WebRequest -Method Post -Headers $headers -UseBasicParsing $protect_branch_url
             }
         }
     }
