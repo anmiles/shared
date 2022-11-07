@@ -21,21 +21,34 @@ Function Stringify($obj) {
 }
 
 Import-Module $file -Force | % {
+    if (!$function:Test) {
+        Function Test {
+            Param (
+                [Parameter(Mandatory = $true)]$value
+            )
+            return $value
+        }
+    }
+
     $test = $_
-    $test.Actual = Stringify(Test($test.Input))
     $test.Input = Stringify($test.Input)
-    $test.Expected = Stringify($test.Expected)
+    if (!$test.Value) { $test.Value = $test.Input }
+    $test.Value = Stringify($test.Value)
+    $test.Actual = Stringify(Test($test.Value))
+    $test.Expect = Stringify($test.Expect)
 
     [PsCustomObject]@{
+        Color = switch($test.Actual) {$test.Expect { "32" } default { "31" }};
+        Result = switch($test.Actual) {$test.Expect { "PASS" } default { "FAIL" }};
         Input = $test.Input;
         Actual = $test.Actual;
-        Expected = $test.Expected;
-        Result = switch($test.Actual) {$test.Expected { "PASS" } default { "FAIL" }};
-        Color = switch($test.Actual) {$test.Expected { "32" } default { "31" }}
+        Expect = $test.Expect;
+        Comment = $test.Comment;
     }
 } | Format-Table -Property @(
-    @{Label = "Input"; Expression = {[char]27 + "[" + $_.Color + "m" + $_.Input}},
-    @{Label = "Result"; Expression = {$_.Result}},
+    @{Label = "Result"; Expression = {[char]27 + "[" + $_.Color + "m" + $_.Result}},
+    @{Label = "Input"; Expression = {$_.Input}},
     @{Label = "Actual"; Expression = {$_.Actual}},
-    @{Label = "Expected"; Expression = {$_.Expected + [char]27 + "[0m"}}
+    @{Label = "Expect"; Expression = {$_.Expect}},
+    @{Label = "Comment"; Expression = {$_.Comment + [char]27 + "[0m"}}
 )
