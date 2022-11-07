@@ -6,7 +6,7 @@
 $ignores = @("xhistory.m3u8")
 $root = "H:/music/playlists"
 
-if (!(confirm "Did you exported all m3u8 playlists into $root")) { exit 1 }
+if (!(confirm "Did you have exported all m3u8 playlists into $root")) { exit 1 }
 
 Get-ChildItem $root/*.m3u8 | ? { !$ignores.Contains($_.Name) } | % {
 	$src = $_.FullName
