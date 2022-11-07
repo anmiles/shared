@@ -79,7 +79,6 @@ $vars.WSL_COMMANDS | % {
 
 $paths = $paths | ? { $_ -notin $sourcePaths }
 $vars.PATH = ($paths + @($scripts_root, $scripts_shared) + $vars.PATH) -Join ";"
-$vars.WORKSPACE_NAME = Split-Path $root -Leaf
 $vars.GIT_ROOT = $root
 $vars.SCRIPTS_ROOT = $scripts_root
 $vars.MODULES_ROOT = Join-Path $scripts_root "modules"
