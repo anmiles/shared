@@ -18,7 +18,7 @@ Param (
     [switch]$crlf
 )
 
-$gitlab_group = Split-Path $env:GIT_ROOT -Leaf
+$gitlab_group = $env:WORKSPACE_NAME
 if ($private) { $gitlab_group = "anmiles_$gitlab_group" }
 $source = "git@gitlab.com:$gitlab_group/$name.git"
 $destination = Join-Path $env:GIT_ROOT $destination_name
