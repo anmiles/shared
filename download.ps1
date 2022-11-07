@@ -34,13 +34,13 @@ $urls | % {
 
     if (Test-Path $outFile) {
         if ($options.replaceAll) {
-            Invoke-WebRequest -Uri $url -OutFile $outFile
+            Invoke-WebRequest -Uri $url -OutFile $outFile -UseBasicParsing
         } else {
             if (!$options.skipAll) {
                 $answer = confirm "File $outFile already exists, overwrite" -extended
-                
+
                 if ($answer.result) {
-                    Invoke-WebRequest -Uri $url -OutFile $outFile
+                    Invoke-WebRequest -Uri $url -OutFile $outFile -UseBasicParsing
                 }
 
                 if ($answer.all) {
@@ -50,7 +50,7 @@ $urls | % {
             }
         }
     } else {
-        Invoke-WebRequest -Uri $url -OutFile $outFile
+        Invoke-WebRequest -Uri $url -OutFile $outFile -UseBasicParsing
     }
 }
 
