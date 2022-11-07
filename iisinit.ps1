@@ -37,8 +37,8 @@ $iis_config.root.sections.section | % {
                 $urls | ? { $_ } | % {
                     $url = $_.Replace("{0}", $site.prefix)
 
-                    "CreateIISRecord -name $name -url $url -directory $directory -local_ip $template.ip -http $http -https $https -persistent $true -hosts $hosts -hosts_section $hosts_section"
-                    CreateIISRecord -name $name -url $url -directory $directory -local_ip $template.ip -http $http -https $https -persistent $true -hosts $hosts -hosts_section $hosts_section
+                    "CreateIISRecord -name $name -url $url -directory $directory -local_ip $template.ip -http $http -https $https -persistent $true -hosts $hosts -hosts_section $hosts_section -port $template.port"
+                    CreateIISRecord -name $name -url $url -directory $directory -local_ip $template.ip -http $http -https $https -persistent $true -hosts $hosts -hosts_section $hosts_section -port $template.port
                 }
             }
         }
