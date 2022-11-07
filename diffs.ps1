@@ -29,7 +29,7 @@ repo -name this -quiet:$quiet -action {
         }
 
         $new_branch = $branch
-        $branch = GetNewBranch -branch $default_branch -quiet:$true
+        $branch = (GetNewBranches -branch $default_branch -quiet:$true)[0]
 
         if ($branch -is [System.Array]) {
             if ($branch.Contains($default_branch)) {

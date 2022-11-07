@@ -28,34 +28,34 @@ Param (
 
 $default_branches = $env:GIT_DEFAULT_BRANCHES | ConvertFrom-Json
 
-Function GetNewBranch ($branch, $quiet) {
+Function GetNewBranches ($branch, $branches, $quiet) {
     $branches = git branch --format "%(refname:short)" | grep -v "(HEAD detached at "
 
     if (!$quiet) { PrintBranch $branch }
 
     if ($new_branch -eq $null) {
-        return $branch
+        return @($branch)
     }
 
     if ($branches -is [string]) {
-        return $branch
+        return @($branch)
     }
 
     if ($new_branch -ne "") {
         $branches = $branches | grep -i $new_branch
+    }
 
-        if ($branches -is [string]) {
-            return $branches
-        }
+    if ($branches -is [string]) {
+        return @($branches)
+    }
 
-        if ($branches -eq $null) {
-            $parsed_branch = git rev-parse $new_branch
+    if ($branches -eq $null) {
+        $parsed_branch = git rev-parse $new_branch
 
-            if ($parsed_branch) {
-                return $parsed_branch
-            } else {
-                return $branch
-            }
+        if ($parsed_branch) {
+            return @($parsed_branch)
+        } else {
+            return @($branch)
         }
     }
 
@@ -100,7 +100,8 @@ Function InvokeRepo($repo, $name) {
     $default_branch = $default_branches.$name
     if (!$default_branch) { $default_branch = $default_branches.default }
     $branch = git rev-parse --abbrev-ref HEAD
-    $new_branch = GetNewBranch $branch
+    $new_branches = GetNewBranches -branch $branch
+    $new_branch = $new_branches[0]
     Invoke-Command $action
     Pop-Location
 }
@@ -134,7 +135,7 @@ if (Test-Path $env:GIT_ROOT) {
             if ($name -eq "all") {
                 InvokeRepo -repo $this_repo -name $this_name
             }
-            
+
             if ($name -eq $this_name) {
                 InvokeRepo -repo $this_repo -name $this_name
             }

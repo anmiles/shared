@@ -36,7 +36,7 @@ repo -name this -new_branch $new_branch -quiet:$quiet -action {
     function PrintBranches {
         out "{Yellow:Branches:}"
 
-        $new_branch | % {$i = 1} {
+        $new_branches | % {$i = 1} {
             PrintBranch "$i) $_" -next
             $i ++
         }
@@ -46,33 +46,34 @@ repo -name this -new_branch $new_branch -quiet:$quiet -action {
         $index = 1
         if ([int]::TryParse($selected, [ref]$index)) {
             if ($index -ge 1) {
-                $index = ($index - 1) % $new_branch.Length
-                return $new_branch[$index]
+                $index = ($index - 1) % $new_branches.Length
+                return $new_branches[$index]
             }
         }
 
-        if ($new_branch.IndexOf($selected) -ne -1) {
+        if ($new_branches.IndexOf($selected) -ne -1) {
             return $selected
         }
 
         $filtered_branches = $new_branch | ? { $_.ToLower().Contains($selected.ToLower()) }
 
-        if ($filtered_branches.Length -eq 0) { return $new_branch }
+        if ($filtered_branches.Length -eq 0) { return $new_branches }
         if ($filtered_branches.Length -eq 1) { return $filtered_branches[0] }
         return $filtered_branches
     }
 
-    if ($new_branch -is [string]) {
+    if ($new_branches.Count -eq 1) {
+        $new_branch = $new_branches[0]
         $selected = ask -old "This branch" -new "Next branch" -value $branch -new_value $new_branch
     } else {
-        $index = $new_branch.IndexOf($branch)
+        $index = $new_branches.IndexOf($branch)
 
         if ($prev -or $next) {
             if ($prev) { $index -- }
             if ($next) { $index ++ }
-            if ($index -lt 0) { $index = $new_branch.Count - 1 }
-            if ($index -gt $new_branch.Count - 1) { $index = 0 }
-            $new_branch = $new_branch[$index]
+            if ($index -lt 0) { $index = $new_branches.Count - 1 }
+            if ($index -gt $new_branches.Count - 1) { $index = 0 }
+            $new_branch = $new_branches[$index]
             $selected = ask -old "This branch" -new "Next branch" -value $branch -new_value $new_branch
         } else {
             do {
@@ -88,7 +89,6 @@ repo -name this -new_branch $new_branch -quiet:$quiet -action {
         ChangeBranch $new_branch -quiet
     }
 
-    
     ChangeBranch $new_branch -quiet
 
     if ($LastExitCode -ne 0) {
