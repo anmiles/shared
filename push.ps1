@@ -53,7 +53,12 @@ if (!$token -or !$user) {
         priority = $priority
     }
 
-    Invoke-RestMethod -Method Post -Uri "https://api.pushover.net/1/messages.json" -Body $data | Out-Null
+    try {
+        Invoke-RestMethod -Method Post -Uri "https://api.pushover.net/1/messages.json" -Body $data | Out-Null
+    } catch {
+        Write-Host "Error: $_" -ForegroundColor Red
+        if (!$status) { $status = "info" }
+    }
 }
 
 if ($status) {
