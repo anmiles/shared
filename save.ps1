@@ -87,7 +87,7 @@ repo -name $name -quiet:$quiet -action {
     )
 
     $command = ($commands | % { "$_ | wc -l" }) -join " && "
-    $unpushed, $uncommitted, $unmerged, $problems = sh $command
+    $unpushed, $uncommitted, $unmerged, $problems = sh $command | % { [int]$_ }
 
     if ($problems -gt 0) {
         git diff --check
