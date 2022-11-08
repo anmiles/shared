@@ -49,17 +49,6 @@ if ($env:WSL_COMMANDS) {
         $vars.WSL_COMMANDS = @()
     }
 
-    if ($vars.WSL_COMMANDS_NODE -and $vars.WSL_NODE_MODULES) {
-        $vars.WSL_COMMANDS += @("node", "npm", "npx")
-        $vars.WSL_COMMANDS += Get-ChildItem $vars.WSL_NODE_MODULES -Recurse -Depth 1 | ? { $_.Name -eq "package.json" } | % {
-            (Get-Content $_.FullName | ConvertFrom-Json).bin.PSObject.Properties.Name
-        }
-    }
-
-    if ($vars.WSL_COMMANDS.Length) {
-        $vars.WSL_COMMANDS = $vars.WSL_COMMANDS | Get-Unique
-    }
-
     $vars.WSL_COMMANDS | % {
         $commands = Get-Command $_ -All -ErrorAction SilentlyContinue
 

@@ -100,8 +100,12 @@ Function InvokeRepo($repo, $name) {
     $default_branch = $default_branches.$name
     if (!$default_branch) { $default_branch = $default_branches.default }
     $branch = git rev-parse --abbrev-ref HEAD
-    $new_branches = GetNewBranches -branch $branch
-    $new_branch = $new_branches[0]
+
+    if ($new_branch -ne $null) {
+        $new_branches = GetNewBranches -branch $branch
+        $new_branch = $new_branches[0]
+    }
+
     Invoke-Command $action
     Pop-Location
 }
@@ -125,20 +129,16 @@ if ($name -and $name -ne "all" -and $name -ne "it") {
     [Environment]::SetEnvironmentVariable("RECENT_REPO", $name, "Process")
 }
 
-if (Test-Path $env:GIT_ROOT) {
-    Get-ChildItem -Path $env:GIT_ROOT -Filter ".git" -Recurse -Force -Depth $env:GIT_DEPTH | Sort PSIsContainer, FullName | % {
-        $this_repo = Split-Path $_.FullName -Parent
-        $this_name = Split-Path $this_repo -Leaf
-        $norepo = Join-Path $this_repo ".norepo"
+($env:REPOSITORIES | ConvertFrom-Json) | % {
+    $this_repo = Join-Path $env:GIT_ROOT $_
+    $this_name = Split-Path $this_repo -Leaf
 
-        if (!(Test-Path $norepo)) {
-            if ($name -eq "all") {
-                InvokeRepo -repo $this_repo -name $this_name
-            }
+    if ($name -eq "all") {
+        InvokeRepo -repo $this_repo -name $this_name
+    }
 
-            if ($name -eq $this_name) {
-                InvokeRepo -repo $this_repo -name $this_name
-            }
-        }
+    if ($name -eq $this_name) {
+        InvokeRepo -repo $this_repo -name $this_name
     }
 }
+

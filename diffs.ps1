@@ -22,7 +22,7 @@ Param (
     [switch]$quiet
 )
 
-repo -name this -quiet:$quiet -action {
+repo -name this -new_branch "" -quiet:$quiet -action {
     Function ParseBranch($branch) {
         if ($branch.Contains("/")) {
             return $branch
