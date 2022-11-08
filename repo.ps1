@@ -21,7 +21,7 @@
 
 Param (
     [string]$name,
-    [Parameter(Mandatory = $true)][ScriptBlock]$action,
+    [ScriptBlock]$action = {},
     $new_branch,
     [switch]$quiet
 )

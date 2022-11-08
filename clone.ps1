@@ -58,6 +58,7 @@ if (!$remote -or !$remote.Contains("origin")) {
 out "{Yellow: > get default branches}"
 $env_json_file = Join-Path $env:GIT_ROOT env.json
 $env_json = ConvertFrom-Json (file $env_json_file)
+$env_json_changed = $false
 
 out "{Yellow: > fetch origin}"
 $result = git fetch origin
@@ -78,8 +79,7 @@ if ($LastExitCode -eq 0) {
 
         if ($default_branch -ne $env_json.GIT_DEFAULT_BRANCHES.default) {
             $env_json.GIT_DEFAULT_BRANCHES | Add-Member -NotePropertyName $name -NotePropertyValue $default_branch
-            Copy-Item $env_json_file "$env_json_file.bak" -Force
-            file $env_json_file ($env_json | ConvertTo-Json)
+            $env_json_changed = $true
             [Environment]::SetEnvironmentVariable("GIT_DEFAULT_BRANCHES", ($env_json.GIT_DEFAULT_BRANCHES | ConvertTo-Json), "Process")
         }
     }
@@ -119,7 +119,19 @@ if ($LastExitCode -eq 0) {
     }
 }
 
+if (!$env_json.REPOSITORIES.Contains($name)) {
+    $env_json.REPOSITORIES += $name
+    [Environment]::SetEnvironmentVariable("REPOSITORIES", ($env_json.REPOSITORIES | ConvertTo-Json), "Process")
+    $env_json_changed = $true
+}
+
+if ($env_json_changed) {
+    Copy-Item $env_json_file "$env_json_file.bak" -Force
+    file $env_json_file ($env_json | ConvertTo-Json)
+}
+
 [Environment]::SetEnvironmentVariable("RECENT_REPO", $destination_name, "Process")
 out "{Yellow: > check packages}"
+
 check-packages
 goto it
