@@ -105,7 +105,7 @@ repo -name $name -quiet:$quiet -action {
         if ($unmerged -eq 0) {
             $prev_message = GetPrevMessage
             $ready = $false
-            
+
             while (!$ready) {
                 if (!$message) { $message = ask -value $prev_message -old "Prev commit message" -new "Next commit message" -append }
 
@@ -138,7 +138,7 @@ repo -name $name -quiet:$quiet -action {
                     discard
                     continue
                 }
-                
+
                 if ((Test-Path -Type Container $repo/.git) -and $commit_message_pattern -and $message -notmatch $commit_message_pattern) {
                     Write-Host "Commit message should have format '$commit_message_example'" -ForegroundColor Red
                     $message = $null
@@ -151,12 +151,12 @@ repo -name $name -quiet:$quiet -action {
 
         if (!$skip) {
             git add --all .
-            
+
             if ($LastExitCode -ne 0) {
                 out "{Red:Unable to add some files, see error details above}"
                 exit 1
             }
-            
+
             if ($unmerged -eq 0) {
                 if ($empty) { $allow_empty = "--allow-empty" }
                 git commit -m "$($message -replace '"', "'")" $allow_empty
@@ -189,7 +189,7 @@ repo -name $name -quiet:$quiet -action {
         }
 
         $arguments = @("push")
-        
+
         if ($minor) {
             $arguments += "-o ci.skip"
         }
