@@ -27,7 +27,7 @@
 #>
 
 Param (
-    $new_branch = $null,
+    $new_branch = "",
     [switch]$next,
     [switch]$prev
 )
