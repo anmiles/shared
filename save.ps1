@@ -86,8 +86,12 @@ repo -name $name -quiet:$quiet -action {
         "git diff --check"
     )
 
-    $command = ($commands | % { "$_ | wc -l" }) -join " && "
-    $unpushed, $uncommitted, $unmerged, $problems = sh $command | % { [int]$_ }
+    if ($env:WSL_ROOT) {
+        $command = ($commands | % { "$_ | wc -l" }) -join " && "
+        $unpushed, $uncommitted, $unmerged, $problems = sh $command | % { [int]$_ }
+    } else {
+        $unpushed, $uncommitted, $unmerged, $problems = $commands | % { (& cmd "/c $_").Count }
+    }
 
     if ($problems -gt 0) {
         git diff --check

@@ -128,29 +128,33 @@ if ($name -and $name -ne "all" -and $name -ne "it") {
     [Environment]::SetEnvironmentVariable("RECENT_REPO", $name, "Process")
 }
 
-$repositories = @{}
+$repositories= @{}
+$i = 0
 
 ($env:REPOSITORIES | ConvertFrom-Json) | % {
     $this_repo = Join-Path $env:GIT_ROOT $_
     $this_name = Split-Path $this_repo -Leaf
-    $repositories[$this_name] = $this_repo
+
+    $repositories[$this_name] = @{
+        Name = $this_name
+        Repo = $this_repo
+        Index = $i++
+    }
 }
 
-$found = $false
-
-$repositories.Keys | % {
-    if ($name -eq "all" -or $name -eq $_) {
+$repositories.Values | Sort { $_.Index } | % {
+    if ($name -eq "all" -or $name -eq $_.Name) {
         $found = $true
-        InvokeRepo -repo $repositories[$_] -name $_
+        InvokeRepo -repo $_.Repo -name $_.Name
     }
 }
 
 if (!$found) {
     Import-Module $env:MODULES_ROOT\levenshtein.ps1 -Force
-    $closest = GetClosest $name $repositories.Keys
-    if ($closest -is [string[]]) { $closest = $closest[0] }
+    $closest = GetClosest $name ($repositories.Values | % { $_.Name })
+    if ($closest -is [Array]) { $closest = $closest[0] }
 
     if (confirm "Did you mean {Green:$closest}") {
-        InvokeRepo -repo $repositories[$closest] -name $closest
+        InvokeRepo -repo $repositories[$closest].Repo -name $closest
     }
 }
