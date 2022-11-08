@@ -79,19 +79,18 @@ repo -name $name -quiet:$quiet -action {
         return $prev_message
     }
 
-    $uncommitted_list = $(git status --short --untracked-files --renames)
-    $uncommitted = $uncommitted_list.Count
+    $commands = @(
+        "git log --format=format:%H origin/$branch..$branch",
+        "git status --short --untracked-files --renames",
+        "git diff --name-status --diff-filter=U",
+        "git diff --check"
+    )
 
-    $unmerged_list = $(git diff --name-status --diff-filter=U)
-    $unmerged = $unmerged_list.Count
-
-    $problems_list = $(git diff --check)
-    $problems = $problems_list.Count
+    $command = ($commands | % { "$_ | wc -l" }) -join " && "
+    $unpushed, $uncommitted, $unmerged, $problems = sh $command
 
     if ($problems -gt 0) {
-        out "{Red:Problems detected:}"
-        $problems_list
-
+        git diff --check
         if (!(confirm "Do you want to ignore problems")) { exit 1 }
     }
 
@@ -160,17 +159,15 @@ repo -name $name -quiet:$quiet -action {
             if ($unmerged -eq 0) {
                 if ($empty) { $allow_empty = "--allow-empty" }
                 git commit -m "$($message -replace '"', "'")" $allow_empty
+                $unpushed ++
             } else {
                 if (Test-Path .git/MERGE_HEAD) {
                     git commit --file .git/MERGE_MSG
+                    $unpushed ++
                 }
             }
         }
     }
-
-    $unpushed_list = $(git log --format=format:%H origin/$branch..$branch)
-    if (!$?) { return }
-    $unpushed = $unpushed_list.Count
 
     if ($mr -or ($unpushed -and $push)) {
         if ($squash -and $unpushed -gt 1) {
