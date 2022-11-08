@@ -31,8 +31,6 @@ $default_branches = $env:GIT_DEFAULT_BRANCHES | ConvertFrom-Json
 Function GetNewBranches ($branch, $branches, $quiet) {
     $branches = git branch --format "%(refname:short)" | grep -v "(HEAD detached at "
 
-    if (!$quiet) { PrintBranch $branch }
-
     if ($new_branch -eq $null) {
         return @($branch)
     }
@@ -100,6 +98,7 @@ Function InvokeRepo($repo, $name) {
     $default_branch = $default_branches.$name
     if (!$default_branch) { $default_branch = $default_branches.default }
     $branch = git rev-parse --abbrev-ref HEAD
+    if (!$quiet) { PrintBranch $branch }
 
     if ($new_branch -ne $null) {
         $new_branches = GetNewBranches -branch $branch
