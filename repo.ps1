@@ -32,11 +32,11 @@ Function GetNewBranches ($branch, $branches, $quiet) {
     $branches = git branch --format "%(refname:short)" | grep -v "(HEAD detached at "
 
     if ($new_branch -eq $null) {
-        return @($branch)
+        return ,@($branch)
     }
 
     if ($branches -is [string]) {
-        return @($branch)
+        return ,@($branch)
     }
 
     if ($new_branch -ne "") {
@@ -44,20 +44,20 @@ Function GetNewBranches ($branch, $branches, $quiet) {
     }
 
     if ($branches -is [string]) {
-        return @($branches)
+        return ,@($branches)
     }
 
-    if ($branches -eq $null) {
-        $parsed_branch = git rev-parse $new_branch
-
-        if ($parsed_branch) {
-            return @($parsed_branch)
-        } else {
-            return @($branch)
-        }
+    if ($branches -ne $null) {
+        return $branches
     }
 
-    return $branches
+    $parsed_branch = git rev-parse $new_branch 2>&1
+    if ($?) {
+        return ,@($parsed_branch)
+    }
+
+    out "{Red:Unknown branch '$new_branch'}"
+    exit 1
 }
 
 Function PrintBranch {
@@ -102,6 +102,9 @@ Function InvokeRepo($repo, $name) {
 
     if ($new_branch -ne $null) {
         $new_branches = GetNewBranches -branch $branch
+        Write-Host "returned"
+        Write-Host $new_branches
+        Write-Host $new_branches.GetType()
         $new_branch = $new_branches[0]
     }
 
@@ -128,33 +131,29 @@ if ($name -and $name -ne "all" -and $name -ne "it") {
     [Environment]::SetEnvironmentVariable("RECENT_REPO", $name, "Process")
 }
 
-$repositories= @{}
-$i = 0
+$repositories = @{}
 
 ($env:REPOSITORIES | ConvertFrom-Json) | % {
     $this_repo = Join-Path $env:GIT_ROOT $_
     $this_name = Split-Path $this_repo -Leaf
-
-    $repositories[$this_name] = @{
-        Name = $this_name
-        Repo = $this_repo
-        Index = $i++
-    }
+    $repositories[$this_name] = $this_repo
 }
 
-$repositories.Values | Sort { $_.Index } | % {
-    if ($name -eq "all" -or $name -eq $_.Name) {
+$found = $false
+
+$repositories.Keys | % {
+    if ($name -eq "all" -or $name -eq $_) {
         $found = $true
-        InvokeRepo -repo $_.Repo -name $_.Name
+        InvokeRepo -repo $repositories[$_] -name $_
     }
 }
 
 if (!$found) {
     Import-Module $env:MODULES_ROOT\levenshtein.ps1 -Force
-    $closest = GetClosest $name ($repositories.Values | % { $_.Name })
-    if ($closest -is [Array]) { $closest = $closest[0] }
+    $closest = GetClosest $name $repositories.Keys
+    if ($closest -is [string[]]) { $closest = $closest[0] }
 
     if (confirm "Did you mean {Green:$closest}") {
-        InvokeRepo -repo $repositories[$closest].Repo -name $closest
+        InvokeRepo -repo $repositories[$closest] -name $closest
     }
 }
