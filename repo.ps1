@@ -102,9 +102,6 @@ Function InvokeRepo($repo, $name) {
 
     if ($new_branch -ne $null) {
         $new_branches = GetNewBranches -branch $branch
-        Write-Host "returned"
-        Write-Host $new_branches
-        Write-Host $new_branches.GetType()
         $new_branch = $new_branches[0]
     }
 
