@@ -122,7 +122,8 @@ if ($LastExitCode -eq 0) {
 if (!$env_json.REPOSITORIES.Contains($name)) {
     $env_json.REPOSITORIES += $name
     $repositories = $env_json.REPOSITORIES | % { [PSCustomObject]@{Name = $_; Order = -$_.StartsWith("scripts/") } } | Sort Order, Name | % { $_.Name }
-    [Environment]::SetEnvironmentVariable("REPOSITORIES", $repositories, "Process")
+    [Environment]::SetEnvironmentVariable("REPOSITORIES", ($repositories | ConvertTo-Json), "Process")
+    $env_json.REPOSITORIES = $repositories
     $env_json_changed = $true
 }
 
@@ -135,4 +136,6 @@ if ($env_json_changed) {
 out "{Yellow: > check packages}"
 
 check-packages
+
+out "{Yellow: > cd $name}"
 goto it
