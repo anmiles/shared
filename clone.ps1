@@ -121,7 +121,8 @@ if ($LastExitCode -eq 0) {
 
 if (!$env_json.REPOSITORIES.Contains($name)) {
     $env_json.REPOSITORIES += $name
-    [Environment]::SetEnvironmentVariable("REPOSITORIES", ($env_json.REPOSITORIES | ConvertTo-Json), "Process")
+    $repositories = $env_json.REPOSITORIES | % { [PSCustomObject]@{Name = $_; Order = -$_.StartsWith("scripts/") } } | Sort Order, Name | % { $_.Name }
+    [Environment]::SetEnvironmentVariable("REPOSITORIES", $repositories, "Process")
     $env_json_changed = $true
 }
 
