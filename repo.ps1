@@ -132,16 +132,18 @@ if ($name -and $name -ne "all" -and $name -ne "it") {
 }
 
 $repositories = @{}
+$repository_keys = @()
 
 ($env:REPOSITORIES | ConvertFrom-Json) | % {
     $this_repo = Join-Path $env:GIT_ROOT $_
     $this_name = Split-Path $this_repo -Leaf
     $repositories[$this_name] = $this_repo
+    $repository_keys += $this_name
 }
 
 $found = $false
 
-$repositories.Keys | % {
+$repository_keys | % {
     if ($name -eq "all" -or $name -eq $_) {
         $found = $true
         InvokeRepo -repo $repositories[$_] -name $_
