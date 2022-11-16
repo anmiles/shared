@@ -18,8 +18,8 @@ Param (
     [switch]$quiet
 )
 
-$diff1 = "__rebase1.diff"
-$diff2 = "__rebase2.diff"
+$diff1 = "../__rebase1.diff"
+$diff2 = "../__rebase2.diff"
 
 repo -name this -new_branch $new_branch -quiet:$quiet -action {
     out "{Yellow:> Rebase onto $new_branch}"
@@ -32,7 +32,7 @@ repo -name this -new_branch $new_branch -quiet:$quiet -action {
     while ($LastExitCode -ne 0) {
         $conflicts_list = $(git diff --check)
         $conflicts = $conflicts_list.Count
-    
+
         if ($conflicts -gt 0) {
             out "{Red:Conflicts detected:}"
             $conflicts_list
@@ -55,9 +55,9 @@ repo -name this -new_branch $new_branch -quiet:$quiet -action {
     git diff $new_branch > $diff2
 
     out "{Yellow:Detecting changes in diffs...}"
-    git difftool --text --no-index $diff1 $diff2
-    Remove-Item -Force $diff1
-    Remove-Item -Force $diff2
+    git diff --text --no-index $diff1 $diff2
+    # Remove-Item -Force $diff1
+    # Remove-Item -Force $diff2
 
     out "{Green:Rebase finished}"
 }
