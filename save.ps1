@@ -205,7 +205,7 @@ repo -name $name -quiet:$quiet -action {
 
             if ($draft) {
                 $arguments += "-o merge_request.title=`"Draft: $message`""
-                $arguments += "-o merge_request.label=`"do not merge`""
+                # $arguments += "-o merge_request.label=`"do not merge`""
             } else {
                 $arguments += "-o merge_request.title=`"$message`""
 
