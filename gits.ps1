@@ -68,8 +68,7 @@ $xmlWriter.WriteAttributeString("xmlns:xsi", "http://www.w3.org/2001/XMLSchema-i
 $gits = CreateFolder
 
 repo all {
-    $relativePath = $repo.Replace($env:GIT_ROOT, "").Trim("\")
-    $parts = $relativePath.Split("\")
+    $parts = $local.Split("/")
     $root = $gits
 
     if ($parts.Count -eq 1) {

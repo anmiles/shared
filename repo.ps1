@@ -26,8 +26,6 @@ Param (
     [switch]$quiet
 )
 
-$default_branches = $env:GIT_DEFAULT_BRANCHES | ConvertFrom-Json
-
 Function GetNewBranches ($branch, $branches, $quiet) {
     $branches = git branch --format "%(refname:short)" | grep -v "(HEAD detached at "
 
@@ -92,11 +90,17 @@ Function ChangeBranch($name, [switch]$quiet) {
     git checkout $name
 }
 
-Function InvokeRepo($repo, $name) {
+Function InvokeRepo($repository) {
+    $repository_id = $repository.id
+    $name = $repository.name
+    $local = $repository.local
+    $remote = $repositoty.remote
+    $default_branch = $repository.default_branch
+
+    $repo = Join-Path $env:GIT_ROOT $repository.local
     if (!$quiet) { Write-Host $repo -ForegroundColor Yellow }
     Push-Location $repo
-    $default_branch = $default_branches.$name
-    if (!$default_branch) { $default_branch = $default_branches.default }
+
     $branch = git rev-parse --abbrev-ref HEAD
     if (!$quiet) { PrintBranch $branch }
 
@@ -128,31 +132,21 @@ if ($name -and $name -ne "all" -and $name -ne "it") {
     [Environment]::SetEnvironmentVariable("RECENT_REPO", $name, "Process")
 }
 
-$repositories = @{}
-$repository_keys = @()
+$repositories = gitlab -get all
 
-($env:REPOSITORIES | ConvertFrom-Json) | % {
-    $this_repo = Join-Path $env:GIT_ROOT $_
-    $this_name = Split-Path $this_repo -Leaf
-    $repositories[$this_name] = $this_repo
-    $repository_keys += $this_name
-}
-
-$found = $false
-
-$repository_keys | % {
-    if ($name -eq "all" -or $name -eq $_) {
+$repositories | % {
+    if ($name -eq "all" -or $name -eq $_.name) {
         $found = $true
-        InvokeRepo -repo $repositories[$_] -name $_
+        InvokeRepo $_
     }
 }
 
 if (!$found) {
     Import-Module $env:MODULES_ROOT\levenshtein.ps1 -Force
-    $closest = GetClosest $name $repositories.Keys
-    if ($closest -is [string[]]) { $closest = $closest[0] }
+    $closest = GetClosest $name $repositories "name"
+    if ($closest.GetType().BaseType -eq [System.Array]) { $closest = $closest[0] }
 
-    if (confirm "Did you mean {Green:$closest}") {
-        InvokeRepo -repo $repositories[$closest] -name $closest
+    if (confirm "Did you mean {Green:$($closest.name)}") {
+        InvokeRepo $closest
     }
 }
