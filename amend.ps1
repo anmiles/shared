@@ -33,72 +33,46 @@ Param (
 )
 
 repo -name $name -quiet:$quiet -action {
-    $remote = git config --get remote.origin.url
-    $remote_name = (Split-Path $remote -Leaf).Replace(".git", "")
+    $protected_branches_url = "https://gitlab.com/api/v4/projects/$repository_id/protected_branches"
 
-    [System.Net.ServicePointManager]::SecurityProtocol = 'Tls12'
-    Write-Host "Getting access token..."
-    vars -op $env:OP_USER -aws $env:AWS_PROFILE -names "gitlab_access_token_amend_$($env:WORKSPACE_NAME)" -silent
-    $headers = @{"PRIVATE-TOKEN" = (Get-Variable -Name "gitlab_access_token_amend_$($env:WORKSPACE_NAME)" -Value) }
+    try {
+        $protected_branch = (gitlab -load $protect_branch_url) | ? { $_.name -eq $branch }
+    } catch {}
 
-    $projects_all = @()
+    $uncommitted_list = $(git status --short --untracked-files --renames)
 
-    Write-Host "Searching for project..."
+    $prev_message = $(git log -n 1 --first-parent $branch --pretty=format:%B)
 
-    @("visibility=private", "membership=true") | % {
-        $page = 1
-        $search_url = "https://gitlab.com/api/v4/projects?$_&per_page=100&search=$remote_name"
+    while (!$message -or $message -eq "diff" -or $message -eq "difftool" -or $message -eq "?" -or $message -eq "??") {
+        $message = ask -value $prev_message -old "Wrong commit message" -new "Right commit message" -append
 
-        do {
-            $projects = (Invoke-WebRequest -Headers $headers "$search_url&page=$page" -UseBasicParsing).Content | ConvertFrom-Json
-            $projects_all += $projects
-            $page ++
+        if ($message -eq "diff" -or $message -eq "?") {
+            git diff HEAD
         }
-        while ($projects.Length -gt 0)
+
+        if ($message -eq "difftool" -or $message -eq "??") {
+            git difftool -d HEAD
+        }
     }
 
-    $projects_all | ? { $_.path -eq $remote_name -and $_.ssh_url_to_repo -eq $remote -or $_.http_url_to_repo -eq $remote } | % {
-        $protected_branches_url = "https://gitlab.com/api/v4/projects/$($_.id)/protected_branches"
-
-        try {
-            $protected_branch = (Invoke-WebRequest -Headers $headers $protected_branches_url -UseBasicParsing).Content | ConvertFrom-Json | ? {$_.name -eq $branch}
-        } catch {}
-
-        $uncommitted_list = $(git status --short --untracked-files --renames)
-
-        $prev_message = $(git log -n 1 --first-parent $branch --pretty=format:%B)
-
-        while (!$message -or $message -eq "diff" -or $message -eq "difftool" -or $message -eq "?" -or $message -eq "??") {
-            $message = ask -value $prev_message -old "Wrong commit message" -new "Right commit message" -append
-
-            if ($message -eq "diff" -or $message -eq "?") {
-                git diff HEAD
-            }
-
-            if ($message -eq "difftool" -or $message -eq "??") {
-                git difftool -d HEAD
-            }
+    if ($message -ne "skip" -and $message -ne "-" -and $message -ne "merge") {
+        if ($message) {
+            git commit --amend -m ($message -replace '"', "'")
         }
 
-        if ($message -ne "skip" -and $message -ne "-" -and $message -ne "merge") {
-            if ($message) {
-                git commit --amend -m ($message -replace '"', "'")
-            }
+        if ($protected_branch) {
+            Write-Host "Unprotecting branch..."
+            $unprotect_branch_url = "$protected_branches_url/$branch"
+            gitlab -load $unprotect_branch_url -method Delete | Out-Null
+        }
 
-            if ($protected_branch) {
-                Write-Host "Unprotecting branch..."
-                $unprotect_branch_url = "$protected_branches_url/$branch"
-                $result = Invoke-WebRequest -Method Delete -Headers $headers -UseBasicParsing $unprotect_branch_url 
-            }
+        Write-Host "Force pushing..."
+        git push --force origin HEAD:refs/heads/$branch
 
-            Write-Host "Force pushing..."
-            git push --force origin HEAD:refs/heads/$branch
-
-            if ($protected_branch) {
-                Write-Host "Protecting branch..."
-                $protect_branch_url = "$($protected_branches_url)?name=$branch&push_access_level=40&merge_access_level=40&unprotect_access_level=40"
-                $result = Invoke-WebRequest -Method Post -Headers $headers -UseBasicParsing $protect_branch_url
-            }
+        if ($protected_branch) {
+            Write-Host "Protecting branch..."
+            $protect_branch_url = "$($protected_branches_url)?name=$branch&push_access_level=40&merge_access_level=40&unprotect_access_level=40"
+            gitlab -load $protect_branch_url -method Post | Out-Null
         }
     }
 }

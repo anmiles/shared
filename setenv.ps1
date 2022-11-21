@@ -9,10 +9,11 @@ $root = $MyInvocation.PSScriptRoot
 $terraform_root = Join-Path (Split-Path $scripts_root -Parent) "terraform"
 
 $vars = @{}
-$vars_file = Join-Path $root env.json
+$vars.ENV_FILE = Join-Path $root "env.json"
+$vars.ENV_REPOSITORIES_FILE = Join-Path $root "env.repositories.json"
 
-if (Test-Path $vars_file) {
-    $json = Get-Content $vars_file | ConvertFrom-Json
+if (Test-Path $vars.ENV_FILE) {
+    $json = Get-Content $vars.ENV_FILE | ConvertFrom-Json
 
     $json.PSObject.Properties | % {
         $vars[$_.Name] = $_.Value
