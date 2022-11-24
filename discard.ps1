@@ -5,10 +5,13 @@
     Remove files from staged or unstaged areas
 .PARAMETER filename
     File to affect. If not specified - affect any files
+.PARAMETER quiet
+    Whether to not output current repository and branch name
 #>
 
 Param (
-    [string]$filename
+    [string]$filename,
+    [switch]$quiet
 )
 
 repo -name this -quiet:$quiet -action {
