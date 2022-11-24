@@ -26,16 +26,10 @@ if (!$save) {
 	out "{Yellow:Save scrip and press any key}"
 	Read-Host
 
-	goto modules
-	discard
-	git pull
+	reload modules
+	reload shared
 
-	goto shared
-	discard
-	git pull
-
-	goto scripts
-	save -push
+	save -push scripts
 } else {
 	decode -dst $zip
 	unzip -src $zip -dst $dir
