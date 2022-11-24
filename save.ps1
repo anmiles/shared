@@ -163,6 +163,7 @@ repo -name $name -quiet:$quiet -action {
             if ($unmerged -eq 0) {
                 if ($empty) { $allow_empty = "--allow-empty" }
                 git commit -m "$($message -replace '"', "'")" $allow_empty
+                [Environment]::SetEnvironmentVariable("RECENT_COMMIT", (git rev-parse HEAD), "Process")
                 $unpushed ++
             } else {
                 if (Test-Path .git/MERGE_HEAD) {
