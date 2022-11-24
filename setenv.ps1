@@ -20,12 +20,15 @@ if (Test-Path $vars.ENV_FILE) {
     }
 }
 
-Function global:shpath([string]$path, [switch]$native) {
+Function global:shpath([string]$path, [switch]$native, [switch]$resolve) {
     if (!$path) { return $path }
+    $path = $path -replace '/', '\'
     if ($native -and $env:WSL_ROOT) { $path = $path.Replace($env:GIT_ROOT, $env:WSL_ROOT) }
     $drive, $dir = $path -split ":"
-    if (!$dir) { return $path -replace '\\', '/' -replace ' ', '\ ' }
-    return $root + $drive.ToLower() + $dir -replace '\\', '/' -replace ' ', '\ '
+    if (!$dir) { $path = $path -replace '\\', '/' -replace ' ', '\ ' }
+    else { $path = $root + $drive.ToLower() + $dir -replace '\\', '/' -replace ' ', '\ ' }
+    if ($resolve) { $path = $path -replace '~', "`$HOME"}
+    return $path
 }
 
 function global:wsh($command, $arguments){

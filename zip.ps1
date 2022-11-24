@@ -5,6 +5,8 @@
     Create zip archive from directory using 7zip, place archive together and return its full path
 .PARAMETER src
     Source directory. If not specified, current working directory used
+.PARAMETER dst
+    Archive. If not specified, current working directory + ".zip"
 .EXAMPLE
     zip 
     # create zip archive $directoryname.zip using 7z where $directoryname is name of current working directory and returns full path to $directoryname.zip
@@ -14,20 +16,16 @@
 #>
 
 Param (
-    [string]$src
+    [string]$src,
+    [string]$dst
 )
 
-if ($src) {
-    $src = Resolve-Path $src
-} else {
-    $src = $PWD
-}
+$path = switch($src){ "" { $PWD } default { Resolve-Path $src }}
 
-$directory = $src.Path
-$archive = "$directory.zip"
+$directory = $path.Path
+if (!$dst) { $dst = "$directory.zip" }
 
-$location = Get-Location
-Set-Location $directory
-Start-Process -FilePath "C:\ProgramData\chocolatey\bin\7z.exe" -ArgumentList "a -y -r -bso0 -bsp0 -mx=0 $archive ." -Wait -NoNewWindow
-Set-Location $location
+Push-Location $directory
+Start-Process -FilePath "C:\ProgramData\chocolatey\bin\7z.exe" -ArgumentList "a -y -r -bso0 -bsp0 -mx=0 $dst ." -Wait -NoNewWindow
+Pop-Location
 $archive
