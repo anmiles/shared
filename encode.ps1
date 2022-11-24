@@ -37,7 +37,7 @@ if ($src) {
         file $dst $text
     } else {
         Set-Clipboard $text
-    }    
+    }
 } else {
 
     $clipboard = Get-ClipBoard -Format Text
