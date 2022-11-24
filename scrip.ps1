@@ -23,6 +23,19 @@ if (!$save) {
 
 	zip -src $dir -dst $zip
 	encode $zip
+	out "{Yellow:Save scrip and press any key}"
+	Read-Host
+
+	goto modules
+	discard
+	git pull
+
+	goto shared
+	discard
+	git pull
+
+	goto scripts
+	save -push
 } else {
 	decode -dst $zip
 	unzip -src $zip -dst $dir
