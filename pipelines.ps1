@@ -22,6 +22,14 @@ Param (
 )
 
 repo -name this -quiet:$quiet -action {
+    $from = switch($head){ $true { "{DarkYellow:HEAD}" } $false { "{DarkYellow:$commits} recent commits" } }
+    $hash = git rev-parse --short HEAD
+    $branch_question = switch($branch){ "HEAD" { $hash } default { $branch } }
+
+    if (!(confirm "Do you want to create {DarkYellow:$commits} pipelines from $from of {DarkYellow:$branch_question}")) {
+        exit
+    }
+
     $testDir = Join-Path $repo $prefix
     $testFile = Join-Path $testDir ".pipeline_test_file"
 
@@ -42,7 +50,8 @@ repo -name this -quiet:$quiet -action {
     }
 
     if (confirm "Do you want to remove all newly created branches ($branches) both locally and remotely") {
-        git checkout $branch
+        $target_branch = switch($branch){"HEAD" {$default_branch} default {$branch} }
+        git checkout $target_branch
 
         $branches | % {
             git branch -D $_

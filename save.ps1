@@ -162,7 +162,8 @@ repo -name $name -quiet:$quiet -action {
 
             if ($unmerged -eq 0) {
                 if ($empty) { $allow_empty = "--allow-empty" }
-                git commit -m "$($message -replace '"', "'")" $allow_empty
+                $escaped_message = $message -replace '"', "'"
+                git commit -m $escaped_message $allow_empty
                 [Environment]::SetEnvironmentVariable("RECENT_COMMIT", (git rev-parse HEAD), "Process")
                 $unpushed ++
             } else {
@@ -180,7 +181,8 @@ repo -name $name -quiet:$quiet -action {
             $aggregated_message = SquashMessages $messages
             git reset --quiet --soft HEAD~$unpushed
             if ($empty) { $allow_empty = "--allow-empty" }
-            git commit -m ($aggregated_message -replace '"', "'") $allow_empty
+            $escaped_message = $aggregated_message -replace '"', "'"
+            git commit -m $escaped_message $allow_empty
         }
 
         if ($branch -ne $default_branch -and $unmerged -eq 0 -and !$nomerge -and (confirm "Do you want to merge {{$default_branch}} into {{$branch}}")) {
@@ -204,11 +206,13 @@ repo -name $name -quiet:$quiet -action {
                 $message = ask -value $prev_message -old "Prev commit message" -new "Next commit message" -append
             }
 
+            $escaped_message = $message -replace '"', "'"
+
             if ($draft) {
-                $arguments += "-o merge_request.title=`"Draft: $message`""
+                $arguments += "-o merge_request.title=`"Draft: $escaped_message`""
                 # $arguments += "-o merge_request.label=`"do not merge`""
             } else {
-                $arguments += "-o merge_request.title=`"$message`""
+                $arguments += "-o merge_request.title=`"$escaped_message`""
 
                 if ((Test-Path -Type Container $repo/.git) -and $commit_message_pattern) {
                     $issue = [Regex]::Matches($message, $commit_message_pattern).Groups[1].Value
@@ -217,12 +221,13 @@ repo -name $name -quiet:$quiet -action {
             }
 
             if (!$unpushed) {
-                git commit -m $message --allow-empty
+                git commit -m $escaped_message --allow-empty
             }
         }
 
         Write-Host "git $arguments"
-        iex "git $arguments"
+        iex "git $arguments" | Tee-Object -Variable push_answer
+        [Environment]::SetEnvironmentVariable("RECENT_PUSH", $push_answer, "Process")
     }
 }
 
