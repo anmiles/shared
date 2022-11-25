@@ -87,7 +87,7 @@ repo -name $name -quiet:$quiet -action {
     )
 
     if ($env:WSL_ROOT) {
-        $command = ($commands | % { "$_ | wc -l" }) -join " && "
+        $command = ($commands | % { "$_ | wc -c" }) -join " && "
         $unpushed, $uncommitted, $unmerged, $problems = sh $command | % { [int]$_ }
     } else {
         $unpushed, $uncommitted, $unmerged, $problems = $commands | % { (& cmd "/c $_").Count }
