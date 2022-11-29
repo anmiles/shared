@@ -9,6 +9,8 @@
 	Full path to local repository. If empty - perform action for all repositories
 .PARAMETER load
 	Perform request to gitlab API
+.PARAMETER exec
+	Execute batch callback using current context
 .PARAMETER method
 	Method to perform GET request to gitlab API (default - GET)
 .PARAMETER private
@@ -31,6 +33,9 @@
 .EXAMPLE
 	gitlab -load https://gitlab.com/api/something
 	# perform get request to https://gitlab.com/api/something
+.EXAMPLE
+	gitlab -exec { Load-GitlabData https://gitlab.com/api/something; Load-GitlabData https://gitlab.com/api/something2;  }
+	# perform 2 get requests using 1 token
 #>
 
 Param (
@@ -38,6 +43,7 @@ Param (
 	[switch]$get,
 	[string]$repo,
 	[string]$load,
+	[ScriptBlock]$exec,
 	[string]$method = "GET",
 	[nullable[bool]]$private = $null
 )
@@ -55,7 +61,7 @@ if ($scan -or $get) {
 	}
 }
 
-if ($scan -or $load) {
+if ($scan -or $load -or $exec) {
 	[System.Net.ServicePointManager]::SecurityProtocol = 'Tls12'
 	Write-Host "Getting access token..."
 	vars -op $env:OP_USER -aws $env:AWS_PROFILE -names "gitlab_access_token_amend_$($env:WORKSPACE_NAME)" -silent
@@ -149,6 +155,10 @@ if ($get) {
 	$json | ? { !$local -or $_.local -eq $local }
 }
 
-if ($query) {
-	Load-GitlabData -url $url -method $method
+if ($load) {
+	Load-GitlabData -url $load -method $method
+}
+
+if ($exec) {
+	Invoke-Command $exec
 }
