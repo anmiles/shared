@@ -57,7 +57,7 @@ repo -name $name -quiet:$quiet -action {
 
     if ($message -ne "skip" -and $message -ne "-" -and $message -ne "merge") {
         if ($message) {
-            git commit --amend -m ($message -replace '"', "'")
+            git commit --amend -m ($message -replace '"', "'" -replace '\$', '\$')
         }
 
         if ($protected_branch) {

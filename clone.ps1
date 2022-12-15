@@ -68,18 +68,20 @@ out "{Yellow: > scan remote info}"
 $repository = gitlab -scan $destination -get -private:$private
 
 $remote_branches = git branch --remote --format "%(refname:short)" | % { $_.Replace("origin/", "") }
-if ($remote_branches.Contains($repository.default_branch)) {
+if ($remote_branches -and $remote_branches.Contains($repository.default_branch)) {
     out "{Yellow: > checkout}"
-    "git checkout $repository.default_branch"
+    "git checkout $($repository.default_branch)"
     git checkout $repository.default_branch
     out "{Yellow: > reset}"
-    "git reset --quiet origin/$repository.default_branch"
+    "git reset --quiet origin/$($repository.default_branch)"
     git reset --quiet origin/$repository.default_branch
 } else {
-    out "{Yellow: > switch to $repository.default_branch}"
+    out "{Yellow: > switch to $($repository.default_branch)}"
     git switch -c $repository.default_branch
     out "{Yellow: > commit}"
-    git commit --allow-empty -m "Initial commit"
+    $message = "Initial commit"
+    if ($env:GIT_DEFAULT_PROJECT) { $message = "$($env:GIT_DEFAULT_PROJECT)-0 $message" }
+    git commit --allow-empty -m $message
     out "{Yellow: > push}"
     git push -u origin $repository.default_branch
 }
