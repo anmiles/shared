@@ -36,7 +36,7 @@ repo -name $name -quiet:$quiet -action {
     $protected_branches_url = "https://gitlab.com/api/v4/projects/$repository_id/protected_branches"
 
     try {
-        $protected_branch = (gitlab -load $protect_branch_url) | ? { $_.name -eq $branch }
+        $protected_branch = (gitlab -load $protected_branches_url) | ? { $_.name -eq $branch }
     } catch {}
 
     $uncommitted_list = $(git status --short --untracked-files --renames)
