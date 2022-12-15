@@ -162,7 +162,7 @@ repo -name $name -quiet:$quiet -action {
 
             if ($unmerged -eq 0) {
                 if ($empty) { $allow_empty = "--allow-empty" }
-                $escaped_message = $message -replace '"', "'"
+                $escaped_message = $message -replace '"', "'" -replace '\$', '\$'
                 git commit -m $escaped_message $allow_empty
                 [Environment]::SetEnvironmentVariable("RECENT_COMMIT", (git rev-parse HEAD), "Process")
                 $unpushed ++
@@ -181,7 +181,7 @@ repo -name $name -quiet:$quiet -action {
             $aggregated_message = SquashMessages $messages
             git reset --quiet --soft HEAD~$unpushed
             if ($empty) { $allow_empty = "--allow-empty" }
-            $escaped_message = $aggregated_message -replace '"', "'"
+            $escaped_message = $aggregated_message -replace '"', "'" -replace '\$', '\$'
             git commit -m $escaped_message $allow_empty
         }
 
@@ -206,7 +206,7 @@ repo -name $name -quiet:$quiet -action {
                 $message = ask -value $prev_message -old "Prev commit message" -new "Next commit message" -append
             }
 
-            $escaped_message = $message -replace '"', "'"
+            $escaped_message = $message -replace '"', "'" -replace '\$', '\$'
 
             if ($draft) {
                 $arguments += "-o merge_request.title=`"Draft: $escaped_message`""
