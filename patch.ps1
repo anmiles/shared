@@ -24,7 +24,7 @@ Param (
 
 repo -new_branch $base -quiet:$quiet -action {
     $temp_file = "patch.patch"
-    $patch_root = Join-Path $env:GIT_ROOT ".patch"
+    $patch_root = Join-Path $env:GIT_ROOT "patch"
     $directory = Join-Path $patch_root $repo.Replace($env:GIT_ROOT, "")
 
     $command = switch($R) {$true {"git diff -R"} $false {"git diff"}}
@@ -76,4 +76,6 @@ repo -new_branch $base -quiet:$quiet -action {
     if ($base -eq "HEAD" -and !$keep) {
         discard $file -quiet
     }
+
+    save -push patch
 }
