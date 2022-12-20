@@ -19,7 +19,7 @@
 
 Param (
     [Parameter(Mandatory = $true)][string[]]$tagNames,
-    [string]$type = "web",
+    [string]$type,
     [string]$environment = "live",
     [switch]$silent
 )

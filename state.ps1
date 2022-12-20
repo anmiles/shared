@@ -166,90 +166,26 @@ if ($renew) {
 }
 
 $forgets = @()
+$tf = Join-Path $env:SCRIPTS_ROOT "tf.json"
 
-if ($new) {
-    if ($targets) {
-        $forgets += $targets
-    } else {
-        switch ($state) {
-            "web" {
-                $forgets += "aws_instance.default"
-                $forgets += "aws_eip_association.public"
-                $forgets += "aws_ebs_volume.web"
-                $forgets += "aws_network_interface.public"
-                $forgets += "aws_network_interface_attachment.public"
-                $forgets += "module.cloudfront_static.null_resource.invalidation"
-                $forgets += "null_resource.blocked"
-                $forgets += "null_resource.certificates"
-                $forgets += "null_resource.deploy"
-                $forgets += "null_resource.iis"
-                $forgets += "null_resource.network"
-                $forgets += "null_resource.notify_released"
-                $forgets += "null_resource.notify_destroyed"
-                $forgets += "null_resource.revision"
-                $forgets += "null_resource.source"
-                $forgets += "null_resource.tasks"
-                $forgets += "null_resource.telegraf"
-                $forgets += "null_resource.userdata"
-            }
+if (Test-Path $tf) {
+    $tf_json = (file $tf) | ConvertFrom-Json
+    $tf_forgets = $tf_json | ? { $_.state -eq $state }
+    if (!$tf_forgets) { $tf_forgets = $tf_json | ? { $_.state -eq "default" } }
 
-            "dev" {
-                $forgets += "aws_instance.default"
-                $forgets += "aws_eip_association.public"
-                $forgets += "aws_ebs_volume.web"
-                $forgets += "aws_network_interface.public"
-                $forgets += "aws_network_interface_attachment.public"
-                $forgets += "null_resource.blocked"
-                $forgets += "null_resource.certificates"
-                $forgets += "null_resource.iis"
-                $forgets += "null_resource.network"
-                $forgets += "null_resource.notify_released"
-                $forgets += "null_resource.notify_destroyed"
-                $forgets += "null_resource.source"
-                $forgets += "null_resource.tasks"
-                $forgets += "null_resource.userdata"
-            }
-
-            "vpn" {
-                $forgets += "aws_instance.default"
-                $forgets += "aws_eip_association.public"
-                $forgets += "null_resource.proxy"
-                $forgets += "null_resource.socks"
-                $forgets += "null_resource.vpn"
-                $forgets += "null_resource.telegraf"
-            }
-
-            default {
-                $forgets += "aws_instance.default"
+    if ($new) {
+        if ($targets) {
+            $forgets += $targets
+        } else {
+            ($tf_forgets.forgets | ? { $_.when -eq "new" }).resources | % {
+                $forgets += $_
             }
         }
     }
-}
 
-if ($action -eq "destroy" -and !$targets -and !$forgot) {
-    switch ($state) {
-        "web" {
-            $forgets += "null_resource.blocked"
-            $forgets += "null_resource.certificates"
-            $forgets += "null_resource.deploy"
-            $forgets += "null_resource.iis"
-            $forgets += "null_resource.network"
-            $forgets += "null_resource.notify_released"
-            $forgets += "null_resource.notify_destroyed"
-            $forgets += "null_resource.revision"
-            $forgets += "null_resource.source"
-            $forgets += "null_resource.tasks"
-            $forgets += "null_resource.telegraf"
-        }
-        "dev" {
-            $forgets += "null_resource.blocked"
-            $forgets += "null_resource.certificates"
-            $forgets += "null_resource.iis"
-            $forgets += "null_resource.network"
-            $forgets += "null_resource.notify_released"
-            $forgets += "null_resource.notify_destroyed"
-            $forgets += "null_resource.source"
-            $forgets += "null_resource.tasks"
+    if ($action -eq "destroy" -and !$targets -and !$forgot) {
+        ($tf_forgets.forgets | ? { $_.when -eq "destroy" }).resources | % {
+            $forgets += $_
         }
     }
 }
