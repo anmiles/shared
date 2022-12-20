@@ -1,3 +1,7 @@
+Param (
+    [Parameter(Mandatory = $true)][ValidateSet("web", "common")][string]$type
+)
+
 $scheduledTagName = "Terminate" # Tag name to schedule terminate on next launch
 $scheduledTagValue = "True" # Tag values to schedule terminate on next launch
 
@@ -5,7 +9,6 @@ $environmentTagName = "Environment" # Tag name to detect enviromnent
 $envinronmentLive = "live" #Tag value for live environment
 
 $typeTagName = "Type" #Tag name to detect instance type
-$typeWeb = "web" #Tag value for web instances
 
 $versionTagName = "WebVersion" #Tag name to detect web version
 
@@ -19,10 +22,10 @@ $query = "Reservations[*].Instances[*].{InstanceId:InstanceId,StateName:State.Na
 
 $instances = ($(aws ec2 describe-instances --query "$query" --output json) -join "" | ConvertFrom-Json)
 
-$lastLiveWebVersion = ec2-tags WebVersion
+$lastLiveWebVersion = ec2-tags WebVersion -type $type
 
 # If instance doesn't have tag $scheduledTagName = $scheduledTagValue and it's either a packer instance or stopped web instance with previous version, then mark it to delete on next launch
-$tagInstances = $instances | ? {$_.StateName -ne "terminated" -and $_.$scheduledTagName -ne $scheduledTagValue -and (($_.$typeTagName -eq $typeWeb -and $_.StateName -eq "stopped" -and $_.$versionTagName -lt $lastLiveWebVersion) -or ($_.KeyName -match $packerKeyNameRegex))}
+$tagInstances = $instances | ? {$_.StateName -ne "terminated" -and $_.$scheduledTagName -ne $scheduledTagValue -and (($_.$typeTagName -eq $type -and $_.StateName -eq "stopped" -and $_.$versionTagName -lt $lastLiveWebVersion) -or ($_.KeyName -match $packerKeyNameRegex))}
 
 if ($tagInstances) {
     Write-Host "Tagging instances [$($tagInstances.InstanceId)] to terminate on next launch..."
