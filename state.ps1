@@ -66,14 +66,19 @@ if ($state -match "\.") {
     $environment_name = $arr[1]
 }
 
+$tf = Join-Path $env:SCRIPTS_ROOT "tf.json"
+$tf_json = (file $tf) | ConvertFrom-Json
+$tf_settings = $tf_json | ? { $_.state -eq $state }
+if (!$tf_settings) { $tf_settings = $tf_json | ? { $_.state -eq "default" } }
+
 $state_location = Join-Path $env:TERRAFORM_ROOT $state
 
 $tfvars_default = "../shared/default.tfvars"
 $tfvars_state = "vars/$state.tfvars"
 $tfvars_environment = "vars/environments/$environment_name.tfvars"
 
-if ($state -eq "web" -and $environment_name -eq "live" -and !$new -and !$current -and $action -eq "apply") {
-    $current = confirm "Do you really want to re-apply current web.live environment"
+if ($tf_settings.web -and $environment_name -eq "live" -and !$new -and !$current -and $action -eq "apply") {
+    $current = confirm "Do you really want to re-apply current $state.$environment_name environment"
     $new = !$current
 }
 
@@ -103,7 +108,7 @@ if ($renew -and !$targets) {
 
 Push-Location $state_location
 
-if ($state -eq "web") {
+if ($tf_settings.web) {
     $timer.StartTask("Getting versions")
 
     $version_keys = @("ami_version", "web_version")
@@ -166,27 +171,20 @@ if ($renew) {
 }
 
 $forgets = @()
-$tf = Join-Path $env:SCRIPTS_ROOT "tf.json"
 
-if (Test-Path $tf) {
-    $tf_json = (file $tf) | ConvertFrom-Json
-    $tf_forgets = $tf_json | ? { $_.state -eq $state }
-    if (!$tf_forgets) { $tf_forgets = $tf_json | ? { $_.state -eq "default" } }
-
-    if ($new) {
-        if ($targets) {
-            $forgets += $targets
-        } else {
-            ($tf_forgets.forgets | ? { $_.when -eq "new" }).resources | % {
-                $forgets += $_
-            }
-        }
-    }
-
-    if ($action -eq "destroy" -and !$targets -and !$forgot) {
-        ($tf_forgets.forgets | ? { $_.when -eq "destroy" }).resources | % {
+if ($new) {
+    if ($targets) {
+        $forgets += $targets
+    } else {
+        ($tf_settings.forgets | ? { $_.when -eq "new" }).resources | % {
             $forgets += $_
         }
+    }
+}
+
+if ($action -eq "destroy" -and !$targets -and !$forgot) {
+    ($tf_settings.forgets | ? { $_.when -eq "destroy" }).resources | % {
+        $forgets += $_
     }
 }
 
