@@ -12,8 +12,13 @@ Param (
     [string]$separator = " | "
 )
 
-$file = Join-Path $PSScriptRoot "tests/$filename.ps1"
-if (!(Test-Path $file)) { throw "File $file doesn't exist" }
+$files = @("tests/$filename.ps1", "../tests/$filename.ps1" ) | % { Join-Path $PSScriptRoot $_}
+
+if (!($files | ? { Test-Path $_ })) {
+    throw "Files $($files -Join ", ") don't exist"
+}
+
+$file = $files | ? { Test-Path $_ } | Select -First 1
 
 Function Stringify($obj) {
     $str = switch ($obj.GetType().IsArray) { $true { $obj -join $separator } $false { $obj.ToString() } }
