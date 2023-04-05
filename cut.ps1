@@ -93,7 +93,6 @@ switch ($inputs.Count) {
         $input = $inputs[0]
         $input_filename = $input.FullName
         $output_filename = $input_filename
-        $cwd = Split-Path $input_filename -Parent
 
         if (!$ext) {
             $filename_ext = [System.IO.Path]::GetExtension($input)
@@ -128,9 +127,11 @@ switch ($inputs.Count) {
         $length = $null
         $concat = $true
         $output_dir = Split-Path $inputs[0] -Parent
-        $cwd = $output_dir
+        $cwd = (Get-Item .).FullName
         $input_filename = Join-Path $output_dir "ffmpeg.txt"
-        file $input_filename (($inputs | % { "file $($_.Name)" }) -join "`n")
+        $input_content = ($inputs | % { "file $($_.FullName.Replace($cwd, '').Replace('\', '/') -replace '^\/', '')" }) -join "`n"
+        Write-Host $input_content
+        file $input_filename $input_content
         $output_filename = Join-Path $output_dir (Get-Date).ToString("yyyy.MM.dd_HH.mm.ss.fff")
     }
 }
