@@ -14,6 +14,6 @@ Param (
 
 Import-Module $env:MODULES_ROOT\patch.ps1 -Force
 
-$command = "git apply -R"
+$command = "git apply --unsafe-paths -R"
 if (!$keep) { $moveTo = ".restored" }
 $patch = Patch -filename $filename -command $command -moveTo $moveTo

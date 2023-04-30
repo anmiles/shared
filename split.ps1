@@ -15,7 +15,7 @@ Param (
 Import-Module $env:MODULES_ROOT\patch.ps1 -Force
 
 $sh_r = switch($R) { $true {"-R"} $false {""} }
-$command = switch($R) { $true {"git apply -R"} $false {"git apply"} }
+$command = switch($R) { $true {"git apply --unsafe-paths -R"} $false {"git apply --unsafe-paths"} }
 $moveTo = $null
 $result = Patch -filename $filename -command $command -moveTo $moveTo
 
