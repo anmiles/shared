@@ -7,6 +7,8 @@
     Apply script only for specified repository name or for current working directory if nothing specified, or apply for all repositories if "all" specified
 .PARAMETER message
     Right commit message
+.PARAMETER empty
+    Whether to just force push without creating commit
 .PARAMETER quiet
     Whether to not output current repository and branch name
 .EXAMPLE
@@ -29,29 +31,24 @@
 Param (
     [string]$name,
     [string]$message,
+    [switch]$empty,
     [switch]$quiet
 )
 
 repo -name $name -quiet:$quiet -action {
-    $protected_branches_url = "https://gitlab.com/api/v4/projects/$repository_id/protected_branches"
+    if (!$empty -and !$delete) {
+        $prev_message = $(git log -n 1 --first-parent $branch --pretty=format:%B)
 
-    try {
-        $protected_branch = (gitlab -load $protected_branches_url) | ? { $_.name -eq $branch }
-    } catch {}
+        while (!$message -or $message -eq "diff" -or $message -eq "difftool" -or $message -eq "?" -or $message -eq "??") {
+            $message = ask -value $prev_message -old "Wrong commit message" -new "Right commit message" -append
 
-    $uncommitted_list = $(git status --short --untracked-files --renames)
+            if ($message -eq "diff" -or $message -eq "?") {
+                git diff HEAD
+            }
 
-    $prev_message = $(git log -n 1 --first-parent $branch --pretty=format:%B)
-
-    while (!$message -or $message -eq "diff" -or $message -eq "difftool" -or $message -eq "?" -or $message -eq "??") {
-        $message = ask -value $prev_message -old "Wrong commit message" -new "Right commit message" -append
-
-        if ($message -eq "diff" -or $message -eq "?") {
-            git diff HEAD
-        }
-
-        if ($message -eq "difftool" -or $message -eq "??") {
-            git difftool -d HEAD
+            if ($message -eq "difftool" -or $message -eq "??") {
+                git difftool -d HEAD
+            }
         }
     }
 
@@ -60,19 +57,9 @@ repo -name $name -quiet:$quiet -action {
             git commit --amend -m ($message -replace '"', "'" -replace '\$', '\$')
         }
 
-        if ($protected_branch) {
-            Write-Host "Unprotecting branch..."
-            $unprotect_branch_url = "$protected_branches_url/$branch"
-            gitlab -load $unprotect_branch_url -method Delete | Out-Null
-        }
-
-        Write-Host "Force pushing..."
-        git push --force origin HEAD:refs/heads/$branch
-
-        if ($protected_branch) {
-            Write-Host "Protecting branch..."
-            $protect_branch_url = "$($protected_branches_url)?name=$branch&push_access_level=40&merge_access_level=40&unprotect_access_level=40"
-            gitlab -load $protect_branch_url -method Post | Out-Null
+        force $name -quiet:$quiet -action {
+            Write-Host "Force pushing..."
+            git push --force origin HEAD:refs/heads/$branch
         }
     }
 }
