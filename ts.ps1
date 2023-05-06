@@ -2,7 +2,7 @@
 .SYNOPSIS
 	Boilerplate for Typescript project
 .PARAMETER action
-	One of { init | app | test | ignore }.
+	One of { init | test | ignore }.
 	Init - generate TS project
 	Test - add test for module based on its exported functions
 	Ignore - adds ignore pattern everywhere
@@ -13,7 +13,7 @@
 #>
 
 Param (
-	[Parameter(Mandatory = $true)][ValidateSet('init', 'app', 'package', 'test', 'ignore')][string]$action,
+	[Parameter(Mandatory = $true)][ValidateSet('init', 'test', 'ignore')][string]$action,
 	[Parameter(Mandatory = $true)][string]$arg
 )
 
@@ -23,10 +23,6 @@ repo ts {
 	if ($repo -eq $location) {
 		throw "Cannot init ts app itself"
 	}
-}
-
-function GetDateString(){
-	return (Get-Date).ToString("yyyy-MM-dd")
 }
 
 function AddToJSON($file, $key, $line) {
@@ -49,10 +45,15 @@ function StripGeneric($type) {
 	return $strippedType
 }
 
+function GetDateString(){
+	return (Get-Date).ToString("yyyy-MM-dd")
+}
+
 $fields = @(
 	@{Name = "NAME"; Input = $true}
+	@{Name = "PATH"; Input = $true}
 	@{Name = "DESCRIPTION"; Input = $true}
-	@{Name = "DATE"; Callback = $function:GetDateString }
+	@{Name = "DATE"; Callback = $function:GetDateString}
 	@{Name = "DEFAULT_BRANCH"; Input = $true }
 )
 
@@ -69,7 +70,7 @@ switch ($action) {
 				$_.Value = ask $_.Name
 			}
 			if ($_.Callback) {
-				$_.Value = $_.Callback.Invoke()[0]
+				$_.Value = $_.Callback.Invoke($fields)[0]
 			}
 		}
 
