@@ -13,6 +13,8 @@
 	Execute batch callback using current context
 .PARAMETER method
 	Method to perform GET request to gitlab API (default - GET)
+.PARAMETER data
+	Data to send with request
 .PARAMETER private
 	Whether to scan private repositories only. If false - scan repositories with membership only. If not specified - scan both.
 .EXAMPLE
@@ -34,6 +36,9 @@
 	gitlab -load https://gitlab.com/api/something
 	# perform get request to https://gitlab.com/api/something
 .EXAMPLE
+	gitlab -load https://gitlab.com/api/change_something -method PUT -data "key=value"
+	# perform put request to https://gitlab.com/api/change_something with setting key to value
+.EXAMPLE
 	gitlab -exec { Load-GitlabData https://gitlab.com/api/something; Load-GitlabData https://gitlab.com/api/something2;  }
 	# perform 2 get requests using 1 token
 #>
@@ -45,6 +50,7 @@ Param (
 	[string]$load,
 	[ScriptBlock]$exec,
 	[string]$method = "GET",
+	[Hashtable]$data = @{},
 	[nullable[bool]]$private = $null
 )
 
@@ -69,7 +75,8 @@ if ($scan -or $load -or $exec) {
 }
 
 Function Load-GitlabData($url, $method = "GET") {
-	return (Invoke-WebRequest -Headers $headers -Method $method $url -UseBasicParsing).Content | ConvertFrom-Json
+	if ($data.Keys.Length) { $body = $data | ConvertTo-Json -Compress }
+	return (Invoke-WebRequest -Headers $headers -Method $method -Body $body -ContentType "application/json" $url -UseBasicParsing).Content | ConvertFrom-Json
 }
 
 Function Get-Local($this_repo) {
