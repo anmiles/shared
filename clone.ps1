@@ -32,6 +32,7 @@ if (!(Test-Path $destination -Type Container)) {
         sh "mkdir $env:WSL_ROOT/$destination_name"
     } else {
         [void](New-Item -Type Directory $destination -Force)
+        takeown /f $destination | Out-Null
     }
 }
 
@@ -40,6 +41,7 @@ Push-Location $destination
 if (!(Test-Path (Join-Path $destination ".git") -Type Container)) {
     out "{Yellow: > initialize git directory}"
     git init
+    takeown /f (Join-Path $destination .git) | Out-Null
 
     if ($crlf) {
         out "{Yellow: > set core.autocrlf to true}"
@@ -86,7 +88,7 @@ if ($remote_branches -and $remote_branches.Contains($repository.default_branch))
     git push -u origin $repository.default_branch
 }
 
-[Environment]::SetEnvironmentVariable("RECENT_REPO", $destination_name, "Process")
+[Environment]::SetEnvironmentVariable("RECENT_REPO", ($destination_name.Split("/") | Select -Last 1), "Process")
 
 out "{Yellow: > check packages}"
 check-packages
