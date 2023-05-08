@@ -7,7 +7,7 @@
 	Test - add test for module based on its exported functions
 	Ignore - adds ignore pattern everywhere
 .PARAMETER arg
-	Should be one of (app | package) for `init`
+	Should be one of (app | lib) for `init`
 	Should be relative path to module for `test`
 	Should be relative path to directory for `ignore`
 #>
@@ -54,12 +54,12 @@ $fields = @(
 	@{Name = "PATH"; Input = $true}
 	@{Name = "DESCRIPTION"; Input = $true}
 	@{Name = "DATE"; Callback = $function:GetDateString}
-	@{Name = "DEFAULT_BRANCH"; Input = $true }
 )
 
 switch ($action) {
 	"init" {
-		$types = @("app", "package")
+		$types = @("app", "lib")
+
 		if (!$types.Contains($arg)) {
 			$usages = ($types | % { "`tts $action $_" }) -join "`n"
 			throw "Usages:`n$usages"
