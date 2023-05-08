@@ -57,11 +57,11 @@ repo -name $name -quiet:$quiet -action {
             git commit --amend -m ($message -replace '"', "'" -replace '\$', '\$')
         }
 
-        unprotect $name $branch -quiet:$quiet
+        unprotect $name $branch -quiet
 
         Write-Host "Force pushing..."
         git push --force origin HEAD:refs/heads/$branch
 
-        protect $name $branch -quiet:$quiet
+        protect $name $branch -quiet
     }
 }
