@@ -49,11 +49,16 @@ function GetDateString(){
 	return (Get-Date).ToString("yyyy-MM-dd")
 }
 
+function GetYearString(){
+	return (Get-Date).ToString("yyyy")
+}
+
 $fields = @(
 	@{Name = "NAME"; Input = $true}
 	@{Name = "PATH"; Input = $true}
 	@{Name = "DESCRIPTION"; Input = $true}
 	@{Name = "DATE"; Callback = $function:GetDateString}
+	@{Name = "YEAR"; Callback = $function:GetYearString}
 )
 
 switch ($action) {
