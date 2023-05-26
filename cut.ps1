@@ -2,15 +2,15 @@
 .SYNOPSIS
     Cuts the video
 .PARAMETER source
-    File to convert. If multiple files is matched (according to "*") then use "concat" mode and ignore "start", "end" and "prefix" parameters ans set "timestamp" to true
+    File to convert. If multiple files is matched (according to "*") then use "concat" mode and ignore "start", "end" and "prefix" parameters and set "timestamp" to true
 .PARAMETER start
-    Start of cut (may be in format "ss", "mm:ss" or "hh:mm:ss"). Ignored if concat mode (see "filename" parameter)
+    Start of cut (may be in format "ss", "mm:ss" or "hh:mm:ss"). Ignored if concat mode (see "source" parameter)
 .PARAMETER end
-    End of cut (may be in format "ss", "mm:ss" or "hh:mm:ss"). Ignored if concat mode (see "filename" parameter)
+    End of cut (may be in format "ss", "mm:ss" or "hh:mm:ss"). Ignored if concat mode (see "source" parameter)
 .PARAMETER height
     Target height
 .PARAMETER prefix
-    Prefix to add before converted filename. Ignored if concat mode (see "filename" parameter)
+    Prefix to add before converted filename. Ignored if concat mode (see "source" parameter)
 .PARAMETER ext
     Target extension
 .PARAMETER rate
@@ -20,7 +20,7 @@
 .PARAMETER audio
     Select audio stream to copy. By default - skip selecting
 .PARAMETER timestamp
-    Whether to use current time to generate target filename rather than re-using source filename with adding prefix before it. Always true if concat mode (see "filename" parameter)
+    Whether to use current time to generate target filename rather than re-using source filename with adding prefix before it. Always true if concat mode (see "source" parameter)
 .PARAMETER mute
     Whether to not include audio stream
 .PARAMETER vcopy
@@ -111,7 +111,6 @@ switch ($inputs.Count) {
         $start_timespan = GetTimeSpan -str $start -default 0
         $end_timespan = GetTimeSpan -str $end -default $duration
         $length = $end_timespan - $start_timespan
-        $options = "{$start_timespan ... $end_timespan ($length)}"
 
         if ($timestamp) {
             $output_filename = $output_filename.Replace($input.Name, $prefix + $input.LastWriteTime.ToString("yyyy.MM.dd_HH.mm.ss.fff"))
@@ -122,7 +121,6 @@ switch ($inputs.Count) {
     }
     default {
         $ext = $exts.default
-        $options = "{concat}"
         $start_timespan = $null
         $length = $null
         $concat = $true
@@ -163,7 +161,7 @@ $filters = (($default_filters_array + $filters_array) | ? { $_}) -join ","
 
 $params = @()
 if ($start_timespan) { $params += @("-ss", $start_timespan) }
-if ($concat) { $params += @("-f", "concat") }
+if ($concat) { $params += @("-f", "concat", "-safe", "0") }
 $params += @("-i", "`"$input_filename`"")
 if ($vcopy) { $params += @("-vcodec", "copy") }
     else { $params += @("-vcodec", "h264") }
