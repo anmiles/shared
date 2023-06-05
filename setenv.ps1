@@ -20,6 +20,12 @@ if (Test-Path $vars.ENV_FILE) {
     }
 }
 
+Function global:ex() {
+    if ($exitCode = $lastExitCode) {
+        throw "Command failed with exit code was $exitCode"
+    }
+}
+
 Function global:shpath([string]$path, [switch]$native, [switch]$resolve) {
     if (!$path) { return $path }
     $path = $path -replace '/', '\'
