@@ -15,7 +15,6 @@ $iis_config.root.sections.section | % {
 
     $http = $section.http -eq "true"
     $https = $section.https -eq "true"
-    $hosts_section = $section.name.ToUpper()
 
     $section.sites.site | % {
         $site = $_.name
@@ -23,6 +22,7 @@ $iis_config.root.sections.section | % {
         $section.templates.template | % {
             $template = $_
             $urls = @($_.hostname, $_.alias)
+            $hosts_section = $template.hosts.ToUpper()
 
             if (!$_.hostname) {
                 $urls += $_.name
