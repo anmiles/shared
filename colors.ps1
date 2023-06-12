@@ -2,7 +2,14 @@
 .SYNOPSIS
     Output all console colors
 #>
+$colors = [Enum]::GetValues([ConsoleColor])
+$maxLength = ($colors | % { $_.ToString().Length } | Measure -Maximum).Maximum
 
-[Enum]::GetValues([ConsoleColor]) | % { Write-Host $_ -ForegroundColor $_ }
-[Enum]::GetValues([ConsoleColor]) | ? { $_ -lt 10 } | % { Write-Host $_ -ForegroundColor White -BackgroundColor $_ }
-[Enum]::GetValues([ConsoleColor]) | ? { $_ -ge 10 } | % { Write-Host $_ -ForegroundColor Black -BackgroundColor $_ }
+$colors | ? { $_ } | % {
+    $front = switch ($_ -lt 10){$true{"White"} $false{"Black"}}
+    Write-Host (([int]$_).ToString().PadLeft(2, " ")) -ForegroundColor $_ -NoNewline;
+    Write-Host " " -NoNewline;
+    Write-Host $_ -ForegroundColor $_ -NoNewline;
+    Write-Host (" " * (1 + $maxLength - $_.ToString().Length)) -NoNewline;
+    Write-Host $_ -ForegroundColor $front -BackgroundColor $_;
+}
