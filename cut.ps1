@@ -19,6 +19,14 @@
     Video filters
 .PARAMETER audio
     Select audio stream to copy. By default - skip selecting
+.PARAMETER hsplit
+    Split video into 2 videos horizontally using selected ratio. Ignores parameters: colorize, crop, scale, rate.
+.PARAMETER vsplit
+    Split video into 2 videos vertically using selected ratio. Ignores parameters: colorize, crop, scale, rate.
+.PARAMETER hstack
+    Stack video horizontally with another video. Ignores all other parameters.
+.PARAMETER vstack
+    Stack video vertically with another video. Ignores all other parameters.
 .PARAMETER timestamp
     Whether to use current time to generate target filename rather than re-using source filename with adding prefix before it. Always true if concat mode (see "source" parameter)
 .PARAMETER mute
@@ -36,6 +44,9 @@
 .EXAMPLE
     cut "D:\video.avi" 32 1:42
     # cuts video D:\video.avi from 32 seconds to 1 minute 42 seconds and sets output filename the source filename with prefix "converted-" and extension "ext"
+.EXAMPLE
+    cut "D:\video.avi" -hsplit 2:1
+    # splits video D:\video.avi horizontally into 2 videos: left video of 2x width and right video of 1x width
 #>
 
 Param (
@@ -48,6 +59,10 @@ Param (
     [float]$rate = 1,
     [string]$filters = "",
     [int]$audio = 0,
+    [string]$hsplit,
+    [string]$vsplit,
+    [string]$hstack,
+    [string]$vstack,
     [switch]$crop,
     [switch]$timestamp,
     [switch]$mute,
@@ -160,20 +175,58 @@ if ($crop) { $filters_array += @("crop=$(crop $width_original $height_original)"
 $filters = (($default_filters_array + $filters_array) | ? { $_}) -join ","
 
 $params = @()
-if ($start_timespan) { $params += @("-ss", $start_timespan) }
-if ($concat) { $params += @("-f", "concat", "-safe", "0") }
-$params += @("-i", "`"$input_filename`"")
-if ($vcopy) { $params += @("-vcodec", "copy") }
-    else { $params += @("-vcodec", "h264") }
-if ($acopy) { $params += @("-acodec", "copy") }
-    else { $params += @("-acodec", "mp3") }
-$params += @("-b:a", "320k", "-ar", "44100")
-if ($audio) { $params += @("-map", "0:v:0", "-map", "0:a:$audio") }
-if ($mute) { $params += "-an" }
-if ($filters) { $params += "-vf $filters" }
-$params += @("-pix_fmt", "yuv420p")
-if ($length) { $params += @("-t", $length) }
-$params += "`"$output_filename`""
+
+if ($hstack) {
+    $params += @("-i", "`"$input_filename`"")
+    $params += @("-i", "`"$hstack`"")
+    $params += @("-filter_complex", "hstack=inputs=2")
+}
+
+if ($vstack) {
+    $params += @("-i", "`"$input_filename`"")
+    $params += @("-i", "`"$vstack`"")
+    $params += @("-filter_complex", "vstack=inputs=2")
+}
+
+if (!$hstack -and !$vstack) {
+    if ($start_timespan) { $params += @("-ss", $start_timespan) }
+    if ($concat) { $params += @("-f", "concat", "-safe", "0") }
+    $params += @("-i", "`"$input_filename`"")
+    if ($vcopy) { $params += @("-vcodec", "copy") }
+        else { $params += @("-vcodec", "h264") }
+    if ($acopy) { $params += @("-acodec", "copy") }
+        else { $params += @("-acodec", "mp3") }
+    $params += @("-b:a", "320k", "-ar", "44100")
+    if ($audio) { $params += @("-map", "0:v:0", "-map", "0:a:$audio") }
+    if ($mute) { $params += "-an" }
+    if ($filters -and !$hsplit -and !$vsplit) { $params += "-vf $filters" }
+    $params += @("-pix_fmt", "yuv420p")
+    if ($length) { $params += @("-t", $length) }
+}
+
+if ($hsplit) {
+    $splits = $hsplit -split ":"
+    $ratio0 = "$($splits[0])/$([float]$splits[0] + [float]$splits[1])"
+    $ratio1 = "$($splits[1])/$([float]$splits[0] + [float]$splits[1])"
+    $filter_complex = "[0]crop=iw*$($ratio0):ih:0:0[left];[0]crop=iw*$($ratio1):ih:ow:0[right]"
+    $output_filename_0 = $output_filename.Replace($ext, "_left" + $ext)
+    $output_filename_1 = $output_filename.Replace($ext, "_right" + $ext)
+    $params += @("-filter_complex", $filter_complex, "-map", "[left]", "`"$output_filename_0`"", "-map", "[right]", "`"$output_filename_1`"")
+}
+
+if ($vsplit) {
+    $splits = $vsplit -split ":"
+    $ratio0 = "$($splits[0])/$([float]$splits[0] + [float]$splits[1])"
+    $ratio1 = "$($splits[1])/$([float]$splits[0] + [float]$splits[1])"
+    $filter_complex = "[0]crop=iw:ih*$($ratio0):0:0[top];[0]crop=iw:ih*$($ratio1):0:oh[bottom]"
+    $output_filename_0 = $output_filename.Replace($ext, "_top" + $ext)
+    $output_filename_1 = $output_filename.Replace($ext, "_bottom" + $ext)
+    $params += @("-filter_complex", $filter_complex, "-map", "[top]", "`"$output_filename_0`"", "-map", "[bottom]", "`"$output_filename_1`"")
+}
+
+if (!$hsplit -and !$vsplit) {
+    $params += "`"$output_filename`""
+}
 
 Write-Host "ffmpeg $params" -ForegroundColor Yellow
 Write-Host "$input_filename => $output_filename" -ForegroundColor Green
