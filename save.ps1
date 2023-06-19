@@ -6,6 +6,7 @@
     Can skip commits particular repositories by specifiying "skip" or "-" as commit message
     Can show diff by specifying "diff" or "?" as commit message
     Can show difftool by specifying "difftool" or "??" as commit message
+    Can accept different messages for each file by specifying "split" or "+" as commit message
     Apply script only for specified repository name or for current working directory if nothing specified, or apply for all repositories if "all" specified
 .PARAMETER name
     Apply script only for specified repository name or for current working directory if nothing specified, or apply for all repositories if "all" specified
@@ -60,6 +61,26 @@ $commit_message_example = "ABC-123 Description"
 $commit_message_pattern = switch($env:COMMIT_MESSAGE_STRICT) {
     "1" { "^([A-Z]+\-\d+) [^$]" }
     default { "" }
+}
+
+function AddAndCommit($filename, $message) {
+    git add --all $filename
+
+    if ($LastExitCode -ne 0) {
+        out "{Red:Unable to add some files, see error details above}"
+        exit 1
+    }
+
+    if ($unmerged -eq 0) {
+        if ($empty) { $allow_empty = "--allow-empty" }
+        $escaped_message = $message -replace '"', "'" -replace '\$', '\$'
+        git commit -m $escaped_message $allow_empty
+        [Environment]::SetEnvironmentVariable("RECENT_COMMIT", (git rev-parse HEAD), "Process")
+    } else {
+        if (Test-Path .git/MERGE_HEAD) {
+            git commit --file .git/MERGE_MSG | Out-Null
+        }
+    }
 }
 
 repo -name $name -quiet:$quiet -action {
@@ -142,6 +163,28 @@ repo -name $name -quiet:$quiet -action {
                     continue
                 }
 
+                if ($message -eq "split" -or $message -eq "+") {
+                    $ready = $true
+                    $skip = $true
+                    $message = $null
+                    $splitfile = Join-Path $env:TEMP "COMMIT_SPLIT"
+                    $lines = git status --short --untracked-files --renames
+                    $maxLength = ($lines | % { $_.Length } | Measure-Object -Maximum).Maximum
+                    $lines | % {
+                        $space = (" " * ($maxLength - $_.Length))
+                        ($_ -replace "^(\s*\S+\s+)", ('$1' + $space)) + " "
+                    } > $splitfile
+                    iex "cmd /c $(git config core.editor) $splitfile"
+                    Get-Content $splitfile | % {
+                        ($none, $status, $message) = $_ -split "^(.{$maxLength}) "
+                        $filename = $status -replace "^(\s*\S+\s+)", ""
+                        AddAndCommit -filename $filename -message $message
+                        $unpushed++
+                    }
+                    Remove-Item -Force $splitfile
+                    continue
+                }
+
                 if ((Test-Path -Type Container $repo/.git) -and $commit_message_pattern -and $message -notmatch $commit_message_pattern) {
                     Write-Host "Commit message should have format '$commit_message_example'" -ForegroundColor Red
                     $message = $null
@@ -153,25 +196,8 @@ repo -name $name -quiet:$quiet -action {
         }
 
         if (!$skip) {
-            git add --all .
-
-            if ($LastExitCode -ne 0) {
-                out "{Red:Unable to add some files, see error details above}"
-                exit 1
-            }
-
-            if ($unmerged -eq 0) {
-                if ($empty) { $allow_empty = "--allow-empty" }
-                $escaped_message = $message -replace '"', "'" -replace '\$', '\$'
-                git commit -m $escaped_message $allow_empty
-                [Environment]::SetEnvironmentVariable("RECENT_COMMIT", (git rev-parse HEAD), "Process")
-                $unpushed ++
-            } else {
-                if (Test-Path .git/MERGE_HEAD) {
-                    git commit --file .git/MERGE_MSG
-                    $unpushed ++
-                }
-            }
+            AddAndCommit . $message
+            $unpushed += (git status --short --untracked-files --renames).Length
         }
     }
 
