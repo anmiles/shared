@@ -197,7 +197,7 @@ repo -name $name -quiet:$quiet -action {
 
         if (!$skip) {
             AddAndCommit . $message
-            $unpushed += (git status --short --untracked-files --renames).Length
+            $unpushed += (git log --format=format:%H origin/$branch..$branch).Length
         }
     }
 
