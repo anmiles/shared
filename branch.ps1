@@ -9,6 +9,8 @@
     Whether to delete branch
 .PARAMETER force
     Whether to not confirm creating of new branch
+.PARAMETER exact
+    Whether to create a branch with the exactly provided name
 .EXAMPLE
     branch New feature
     # creates branch feature/New-feature
@@ -17,7 +19,8 @@
 Param (
     [Parameter(ValueFromRemainingArguments = $true)][string[]]$name,
     [switch]$d,
-    [switch]$force
+    [switch]$force,
+    [switch]$exact
 )
 
 while (!$name) {
@@ -26,7 +29,7 @@ while (!$name) {
 
 $branch_name = $name -Join "-"
 
-if ($branch_name -notmatch "^[a-z]+\/") {
+if (!$exact -and $branch_name -notmatch "^[a-z]+\/") {
     $branch_name = $name -Join " " -replace "[^A-Za-z0-9_\-]+", "-"
     $branch_name = "feature/$branch_name"
 }
