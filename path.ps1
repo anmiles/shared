@@ -1,7 +1,13 @@
 <#
 .SYNOPSIS
     Show all paths in PATH environment variable
+.PARAMETER grep
+    Whether to grep by specified expression
 #>
+
+Param (
+    [string]$grep = ".*"
+)
 
 $prev_root = ""
 $prev_dir = ""
@@ -10,7 +16,7 @@ $root_color_index = 0
 $dir_color = $false
 
 "----------------------------------------"
-$env:PATH -split ";" | Sort | ? { $_ } | % {
+$env:PATH -split ";" | Sort | ? { $_ } | grep -i $grep | % {
 	$root = ($_ -split '\\' | Select -First 2) -join "\"
 	$dir = ($_ -split '\\' | Select -First 3) -join "\"
 
