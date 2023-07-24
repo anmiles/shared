@@ -29,6 +29,8 @@
     Stack video vertically with another video. Ignores all other parameters.
 .PARAMETER timestamp
     Whether to use current time to generate target filename rather than re-using source filename with adding prefix before it. Always true if concat mode (see "source" parameter)
+.PARAMETER novideo
+    Whether to not include video stream
 .PARAMETER mute
     Whether to not include audio stream
 .PARAMETER vcopy
@@ -65,6 +67,7 @@ Param (
     [string]$vstack,
     [switch]$crop,
     [switch]$timestamp,
+    [switch]$novideo,
     [switch]$mute,
     [switch]$vcopy,
     [switch]$acopy,
@@ -93,7 +96,7 @@ $framerate = [Math]::Floor(25 * $rate)
 
 $exts = @{
     ".mp3" = ".mp3"
-    default = ".mp4"
+    default = switch($novideo) { $true { ".mp3"} $false { ".mp4" } }
 }
 
 $inputs = Get-Item $source
@@ -192,15 +195,26 @@ if (!$hstack -and !$vstack) {
     if ($start_timespan) { $params += @("-ss", $start_timespan) }
     if ($concat) { $params += @("-f", "concat", "-safe", "0") }
     $params += @("-i", "`"$input_filename`"")
-    if ($vcopy) { $params += @("-vcodec", "copy") }
-        else { $params += @("-vcodec", "h264") }
-    if ($acopy) { $params += @("-acodec", "copy") }
-        else { $params += @("-acodec", "mp3") }
-    $params += @("-b:a", "320k", "-ar", "44100")
+
     if ($audio) { $params += @("-map", "0:v:0", "-map", "0:a:$audio") }
-    if ($mute) { $params += "-an" }
-    if ($filters -and !$hsplit -and !$vsplit) { $params += "-vf $filters" }
-    $params += @("-pix_fmt", "yuv420p")
+
+    if ($novideo) {
+        $params += "-vn"
+    } else {
+        if ($vcopy) { $params += @("-vcodec", "copy") }
+        else { $params += @("-vcodec", "h264") }
+
+        if ($filters -and !$hsplit -and !$vsplit) { $params += "-vf $filters" }
+        $params += @("-pix_fmt", "yuv420p")
+    }
+
+    if ($mute) {
+        $params += "-an"
+    } else {
+        if ($acopy) { $params += @("-acodec", "copy") }
+        else { $params += @("-acodec", "mp3", "-b:a", "320k", "-ar", "44100") }
+    }
+
     if ($length) { $params += @("-t", $length) }
 }
 
