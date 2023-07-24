@@ -14,13 +14,13 @@ Param (
 
 [void][System.Reflection.Assembly]::LoadWithPartialName("System.Drawing")
 [void][System.Reflection.Assembly]::LoadWithPartialName("System.Windows.Forms")
-$screen = [System.Windows.Forms.Screen]::AllScreens | ? {$_.Primary}
+$screen = [System.Windows.Forms.Screen]::AllScreens | Sort { $_.Bounds.X } | Select -Last 1
 $form = New-Object System.Windows.Forms.Form
 $form.Location = $screen.Bounds.Location
 $form.Size = $screen.Bounds.Size
 $form.FormBorderStyle = "None"
 $form.StartPosition = "Manual"
-# $form.ShowInTaskbar = $false
+$form.ShowInTaskbar = $false
 $form.ShowIcon = $false
 $form.TopMost = $true
 $form.BackColor = [System.Drawing.Color]::FromArgb(255, 255, 255, 255)
