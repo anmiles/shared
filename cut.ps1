@@ -96,7 +96,7 @@ $framerate = [Math]::Floor(25 * $rate)
 
 $exts = @{
     ".mp3" = ".mp3"
-    default = switch($novideo) { $true { ".mp3"} $false { ".mp4" } }
+    default = switch($novideo) { $true { ".mp3" } $false { ".mp4" } }
 }
 
 $inputs = Get-Item $source
@@ -123,6 +123,7 @@ switch ($inputs.Count) {
 
         $ffprobe = $(ffprobe -v error -show_entries stream=width,height,duration -of csv=s=,:p=0 $input_filename) | ? { $_ -ne "N/A" } | Sort
         $duration = [int]($ffprobe | ? {$_ -notmatch ","})
+        if (!$duration) { $duration = [int]((($ffprobe | ? {$_ -match ","}) -split ",")[2]) }
         $width_original = [int]((($ffprobe | ? {$_ -match ","}) -split ",")[0])
         $height_original = [int]((($ffprobe | ? {$_ -match ","}) -split ",")[1])
 
