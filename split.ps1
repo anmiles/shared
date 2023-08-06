@@ -28,13 +28,14 @@ $modified = AltPatchName -filename $filename -dirname ".modified"
 out "Modify file {Yellow:$target} and press {White:ENTER} to apply it again > " -NoNewLine
 
 repo -name this -quiet -action {
-    Copy-Item $target $temp
+    Copy-Item $target $temp -Force
     Read-Host
     $temp_sh = shpath $temp -native -resolve
+    $temp_sh_win = $temp.Replace("\", "/")
     $modified_sh = shpath $modified -native -resolve
     $file_sh = shpath $file -native -resolve
     $applied_sh = switch($R){ $true {$file_sh} $false {$modified_sh} }
     $postponed_sh = switch($R){ $true {$modified_sh} $false {$file_sh} }
-    "git diff $sh_r $target > $applied_sh; git diff --no-index $target $temp_sh > $postponed_sh; sed -i 's|b$temp_sh|b/$target|g' $postponed_sh"
-    sh "git diff $sh_r $target > $applied_sh; git diff --no-index $target $temp_sh > $postponed_sh; sed -i 's|b$temp_sh|b/$target|g' $postponed_sh"
+    "git diff $sh_r $target > $applied_sh; git diff --no-index $target $temp_sh > $postponed_sh; sed -i 's|b$temp_sh|b/$target|g' $postponed_sh; sed -i 's|b/$temp_sh_win|b/$target|g' $postponed_sh"
+    sh "git diff $sh_r $target > $applied_sh; git diff --no-index $target $temp_sh > $postponed_sh; sed -i 's|b$temp_sh|b/$target|g' $postponed_sh; sed -i 's|b/$temp_sh_win|b/$target|g' $postponed_sh"
 }
