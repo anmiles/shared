@@ -40,3 +40,5 @@ if (!$handle) {
 }
 
 [void]$user32::SetWindowPos([System.IntPtr]$handle, -1, 0, 0, 0, 0, 0x53)
+
+$handle
