@@ -7,12 +7,15 @@
     Window handle
 .PARAMETER title
     Window title
+.PARAMETER check
+    Just output the handle found
 #>
 
 Param (
     [int]$handle,
     [int]$process,
-    [string]$title
+    [string]$title,
+    [switch]$check
 )
 
 $user32Lib = @"
@@ -39,6 +42,8 @@ if (!$handle) {
     }
 }
 
-[void]$user32::SetWindowPos([System.IntPtr]$handle, -1, 0, 0, 0, 0, 0x53)
-
-$handle
+if ($check) {
+    $handle
+} else {
+    [void]$user32::SetWindowPos([System.IntPtr]$handle, -1, 0, 0, 0, 0, 0x53)
+}
