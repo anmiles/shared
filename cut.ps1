@@ -28,7 +28,7 @@
 .PARAMETER vstack
     Stack video vertically with another video. Ignores all other parameters.
 .PARAMETER timestamp
-    Whether to use current time to generate target filename rather than re-using source filename with adding prefix before it. Always true if concat mode (see "source" parameter)
+    Whether to use current time to generate target filename rather than re-using source filename with adding prefix before it.
 .PARAMETER novideo
     Whether to not include video stream
 .PARAMETER mute
@@ -45,7 +45,7 @@
     Whether to crop video
 .EXAMPLE
     cut "D:\video.avi" 32 1:42
-    # cuts video D:\video.avi from 32 seconds to 1 minute 42 seconds and sets output filename the source filename with prefix "converted-" and extension "ext"
+    # cuts video D:\video.avi from 32 seconds to 1 minute 42 seconds and sets output filename the source filename without prefix and with extension "ext"
 .EXAMPLE
     cut "D:\video.avi" -hsplit 2:1
     # splits video D:\video.avi horizontally into 2 videos: left video of 2x width and right video of 1x width
@@ -56,7 +56,7 @@ Param (
     [string]$start,
     [string]$end,
     [int]$height = 0,
-    [string]$prefix = "converted-",
+    [string]$prefix,
     [string]$ext,
     [float]$rate = 1,
     [string]$filters = "",
@@ -94,63 +94,63 @@ Function GetStamp($int) {
 
 $framerate = [Math]::Floor(25 * $rate)
 
-$exts = @{
-    ".mp3" = ".mp3"
-    default = switch($novideo) { $true { ".mp3" } $false { ".mp4" } }
-}
+$exts_audio = @(".3gp", ".aac", ".am4", ".cda", ".flac", ".m4a", ".mp3", ".ogg", ".wav", ".wma")
+$ext_default_video = ".mp4"
+$ext_default_audio = ".mp3"
 
 $inputs = Get-Item $source
 if (!$inputs) { $inputs = Get-Item -LiteralPath $source -Force }
 
-switch ($inputs.Count) {
-    0 {
-        out "{Red:There are no files matched to $source}"
-        exit 1
+if (!$ext -and $inputs.Count -gt 0) {
+    $ext = $ext_default_video
+    $filename_ext = [System.IO.Path]::GetExtension($inputs[0])
+
+    if ($exts_audio.Contains($filename_ext)) {
+        $novideo = $true
     }
-    1 {
-        $input = $inputs[0]
-        $input_filename = $input.FullName
-        $output_filename = $input_filename
 
-        if (!$ext) {
-            $filename_ext = [System.IO.Path]::GetExtension($input)
-            $ext = $exts[$filename_ext]
-
-            if (!$ext) {
-                $ext = $exts.default
-            }
-        }
-
-        $ffprobe = $(ffprobe -v error -show_entries stream=width,height,duration -of csv=s=,:p=0 $input_filename) | ? { $_ -ne "N/A" } | Sort
-        $duration = [int]($ffprobe | ? {$_ -notmatch ","})
-        if (!$duration) { $duration = [int]((($ffprobe | ? {$_ -match ","}) -split ",")[2]) }
-        $width_original = [int]((($ffprobe | ? {$_ -match ","}) -split ",")[0])
-        $height_original = [int]((($ffprobe | ? {$_ -match ","}) -split ",")[1])
-
-        $start_timespan = GetTimeSpan -str $start -default 0
-        $end_timespan = GetTimeSpan -str $end -default $duration
-        $length = $end_timespan - $start_timespan
-
-        if ($timestamp) {
-            $output_filename = $output_filename.Replace($input.Name, $prefix + $input.LastWriteTime.ToString("yyyy.MM.dd_HH.mm.ss.fff"))
-        } else {
-            $output_filename = $output_filename.Replace($input.Name, $prefix + $input.Name)
-            $output_filename = $output_filename.Replace($input.Extension, "")
-        }
+    if ($novideo) {
+        $ext = $ext_default_audio
     }
-    default {
-        $ext = $exts.default
-        $start_timespan = $null
-        $length = $null
-        $concat = $true
-        $output_dir = Split-Path $inputs[0] -Parent
-        $cwd = (Get-Item .).FullName
-        $input_filename = Join-Path $output_dir "ffmpeg.txt"
-        $input_content = ($inputs | % { "file $($_.FullName.Replace($cwd, '').Replace('\', '/') -replace '^\/', '')" }) -join "`n"
-        Write-Host $input_content
-        file $input_filename $input_content
-        $output_filename = Join-Path $output_dir (Get-Date).ToString("yyyy.MM.dd_HH.mm.ss.fff")
-    }
+}
+
+if ($inputs.Count -eq 0) {
+    out "{Red:There are no files matched to $source}"
+    exit 1
+}
+
+$concat = $inputs.Count -gt 1
+
+$input = $inputs[0]
+$input_filename = $input.FullName
+$output_filename = $input.FullName
+
+if ($concat) {
+    $start_timespan = $null
+    $length = $null
+
+    $cwd = (Get-Item .).FullName
+    $list_filename = $input_filename.Replace($input.Name, "ffmpeg.txt")
+    $input_content = ($inputs | % { "file $($_.FullName.Replace($cwd, '').Replace('\', '/') -replace '^\/', '')" }) -join "`n"
+    Write-Host $input_content
+    file $list_filename $input_content
+} else {
+    $ffprobe = $(ffprobe -v error -show_entries stream=width,height,duration -of csv=s=,:p=0 $input_filename) | ? { $_ -ne "N/A" } | Sort
+    $duration = [int]($ffprobe | ? {$_ -notmatch ","})
+    if (!$duration) { $duration = [int]((($ffprobe | ? {$_ -match ","}) -split ",")[2]) }
+    $width_original = [int]((($ffprobe | ? {$_ -match ","}) -split ",")[0])
+    $height_original = [int]((($ffprobe | ? {$_ -match ","}) -split ",")[1])
+
+    $start_timespan = GetTimeSpan -str $start -default 0
+    $end_timespan = GetTimeSpan -str $end -default $duration
+    $length = $end_timespan - $start_timespan
+}
+
+if ($timestamp) {
+    $output_filename = $output_filename.Replace($input.Name, $prefix + $input.LastWriteTime.ToString("yyyy.MM.dd_HH.mm.ss.fff"))
+} else {
+    $output_filename = $output_filename.Replace($input.Name, $prefix + $input.Name)
+    $output_filename = $output_filename.Replace($input.Extension, "")
 }
 
 $output_filename = $output_filename + $ext
@@ -194,8 +194,8 @@ if ($vstack) {
 
 if (!$hstack -and !$vstack) {
     if ($start_timespan) { $params += @("-ss", $start_timespan) }
-    if ($concat) { $params += @("-f", "concat", "-safe", "0") }
-    $params += @("-i", "`"$input_filename`"")
+    if ($concat) { $params += @("-f", "concat", "-safe", "0", "-i", "`"$list_filename`"") }
+    else { $params += @("-i", "`"$input_filename`"") }
 
     if ($audio) { $params += @("-map", "0:v:0", "-map", "0:a:$audio") }
 
