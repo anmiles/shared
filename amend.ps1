@@ -7,6 +7,8 @@
     Apply script only for specified repository name or for current working directory if nothing specified, or apply for all repositories if "all" specified
 .PARAMETER message
     Right commit message
+.PARAMETER remote_name
+    Remote name
 .PARAMETER empty
     Whether to just force push without creating commit
 .PARAMETER quiet
@@ -31,12 +33,13 @@
 Param (
     [string]$name,
     [string]$message,
+    [string]$remote_name = "origin",
     [switch]$empty,
     [switch]$quiet
 )
 
 repo -name $name -quiet:$quiet -action {
-    if (!$empty -and !$delete) {
+    if (!$empty) {
         $prev_message = $(git log -n 1 --first-parent $branch --pretty=format:%B)
 
         while (!$message -or $message -eq "diff" -or $message -eq "difftool" -or $message -eq "?" -or $message -eq "??") {
@@ -60,7 +63,7 @@ repo -name $name -quiet:$quiet -action {
         unprotect $name $branch -quiet
 
         Write-Host "Force pushing..."
-        git push --force origin HEAD:refs/heads/$branch
+        git push --force $remote_name HEAD:refs/heads/$branch
 
         protect $name $branch -quiet
     }
