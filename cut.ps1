@@ -43,6 +43,8 @@
     Even more colorized
 .PARAMETER crop
     Whether to crop video
+.PARAMETER silent
+    Less verbose output
 .EXAMPLE
     cut "D:\video.avi" 32 1:42
     # cuts video D:\video.avi from 32 seconds to 1 minute 42 seconds and sets output filename the source filename without prefix and with extension "ext"
@@ -72,7 +74,8 @@ Param (
     [switch]$vcopy,
     [switch]$acopy,
     [switch]$colorize,
-    [switch]$colorize2
+    [switch]$colorize2,
+    [switch]$silent
 )
 
 Function GetTimeSpan {
@@ -94,7 +97,7 @@ Function GetStamp($int) {
 
 $framerate = [Math]::Floor(25 * $rate)
 
-$exts_audio = @(".3gp", ".aac", ".am4", ".cda", ".flac", ".m4a", ".mp3", ".ogg", ".wav", ".wma")
+$exts_audio = @(".aac", ".am4", ".cda", ".flac", ".m4a", ".mp3", ".ogg", ".wav", ".wma")
 $ext_default_video = ".mp4"
 $ext_default_audio = ".mp3"
 
@@ -239,12 +242,22 @@ if ($vsplit) {
     $params += @("-filter_complex", $filter_complex, "-map", "[top]", "`"$output_filename_0`"", "-map", "[bottom]", "`"$output_filename_1`"")
 }
 
+if ($silent) {
+    $params += @("-loglevel", "error")
+}
+
 if (!$hsplit -and !$vsplit) {
     $params += "`"$output_filename`""
 }
 
-Write-Host "ffmpeg $params" -ForegroundColor Yellow
-Write-Host "$input_filename => $output_filename" -ForegroundColor Green
+if (!$silent) {
+    Write-Host "ffmpeg $params" -ForegroundColor Yellow
+    Write-Host "$input_filename => $output_filename" -ForegroundColor Green
+}
+
 Start-Process cmd -ArgumentList "/c ffmpeg $params" -NoNewWindow -Wait
 if ($concat) { Remove-Item $input_filename }
-Write-Host $output_filename -ForegroundColor Green
+
+if (!$silent) {
+    Write-Host $output_filename -ForegroundColor Green
+}
