@@ -7,6 +7,8 @@
     String question to ask without '?'
 .PARAMETER extended
     Whether to provide additional options like 'a' for all yes and 'x' for all no
+.PARAMETER result
+    Predefined result
 .EXAMPLE
     confirm "Are you really sure to delete {{$file}}"
     # outputs "Are you sure (y/n)?", highlights question with yellow, and $file with green, and accepts only (y/n) as answer, then returns True if y and False if n
@@ -14,7 +16,8 @@
 
 Param (
     [Parameter(Mandatory = $true)][string]$question,
-    [switch]$extended
+    [switch]$extended,
+    [Nullable[boolean]]$result = $null
 )
 
 $question = $question -replace '\{\{(.*?)\}}', '{Green:$1}'
@@ -32,6 +35,13 @@ $answers = switch($extended) {
 Function Ask-Question($question) {
     out $question -NoNewline -ForegroundColor Yellow
     Write-Host " ($options)? " -NoNewline -ForegroundColor Yellow
+
+    if ($result -is [boolean]) {
+        Write-Host ""
+        if ($result) { return "y" }
+        else { return "n" }
+    }
+
     return Read-Host
 }
 
