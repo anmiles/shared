@@ -38,6 +38,8 @@ Param (
     [switch]$silent
 )
 
+$op_disabled = $true
+
 $nameString = $names -join ","
 
 if ($op) {
@@ -46,14 +48,18 @@ if ($op) {
     }
 
     $names | % {
-        $result = exec op "item get $_ --fields label=password"
+        if ($op_disabled) {
+            $result = @{ exitCode = 1; err = "1password disabled" }
+        } else {
+            $result = exec op "item get $_ --fields label=password"
+        }
 
         if ($result.exitCode -eq 1) {
             if ($result.err.Contains("op signin") -or $result.err.Contains("sign in")) {
                 iex $(Get-Content $env:OP_CODE | op signin --account $op)
                 $result = exec op "item get $_ --fields label=password"
             } else {
-                $result = @{ output = ask -new $_ }
+                $result = @{ output = ask -new $_ -secure }
             }
         }
 
@@ -65,7 +71,7 @@ if ($op) {
 
 if ($terraform) {
     if (!$silent) { "Getting $nameString from terraform state $terraform" }
-    
+
     $state = $terraform
     $workspace = "default"
 
@@ -86,12 +92,12 @@ if ($terraform) {
     }
 
     $result_json = terraform output -json
-    
+
     if ($LASTEXITCODE -eq 1) {
         terraform init -force-copy
         $result_json = terraform output -json
     }
-    
+
     $result = $result_json | ConvertFrom-Json
     $output = @{}
 
@@ -113,7 +119,7 @@ if ($terraform) {
                 $output_obj.$_ = $result_obj
             }
         }
-        
+
         Set-Variable -Force -Name $key -Value $output.$key -Scope 1
     }
 
@@ -129,10 +135,9 @@ if ($aws -or $env:AWS_ACCESS_KEY_ID) {
 
     $profile = ""
     if ($aws) { $profile = "--profile $aws" }
-    
 
     $result = iex "aws ssm get-parameters --with-decryption --names $names $profile --output json | ConvertFrom-Json"
-    
+
     if (!$?) {
         $names | % {
             Set-Variable -Force -Name $_ -Value (ask -new $_) -Scope 1

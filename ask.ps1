@@ -30,6 +30,7 @@ Param (
     [string]$new_value,
     [string]$default_new_value,
     [switch]$append,
+    [switch]$secure,
     [switch]$silent
 )
 
@@ -41,7 +42,12 @@ if (!$silent) {
 }
 
 if (!$silent) {
-    if (!$new_value) { $new_value = Read-Host } else { Write-Host }
+    if (!$new_value) {
+        $new_value = switch ($secure) {
+            $true { [System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR((Read-Host -AsSecureString))) }
+            $false { Read-Host }
+        }
+    } else { Write-Host }
 }
 
 if ($new_value.Count -eq 0 -or $new_value[0].Count -eq 0) {
@@ -71,8 +77,9 @@ if ($new_value.Count -eq 0 -or $new_value[0].Count -eq 0) {
 }
 
 if (!$silent) {
+    $new_value_output = switch($secure){ $true { $new_value -replace '.', "*" } default { $new_value } }
     [console]::SetCursorPosition([console]::CursorLeft, [console]::CursorTop - 1)
-    Write-Host "${new}: $new_value" -ForegroundColor Green
+    Write-Host "${new}: $new_value_output" -ForegroundColor Green
 }
 
 $new_value
