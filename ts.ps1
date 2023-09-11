@@ -125,7 +125,7 @@ switch ($action) {
 
 		$exports = $exportParts[1] -split '(\w+)' | ? { $_ -match '^\w+$' }
 
-		$functionMatches = [Regex]::Matches($moduleContent, "(async )?function ([^(<]+)(<.*>)?\((.*?)\)")
+		$functionMatches = [Regex]::Matches($moduleContent, "^\s*(async )?function ([^(<]+)(<.*>)?\((.*?)\)")
 		$allArguments = @()
 
 		$functions = $functionMatches | % {
@@ -203,7 +203,13 @@ switch ($action) {
 		$output += ($describes -join "`n`n")
 		$output += "});";
 		$output += "";
+
+		if (!(Test-Path $testDir)) {
+			New-Item -Type Directory $testDir -Force | Out-Null
+		}
+
 		file $testFile ($output -join "`n")
+		code $testFile
 	}
 
 	"ignore" {
