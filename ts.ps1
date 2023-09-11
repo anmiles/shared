@@ -125,16 +125,19 @@ switch ($action) {
 
 		$exports = $exportParts[1] -split '(\w+)' | ? { $_ -match '^\w+$' }
 
-		$functionMatches = [Regex]::Matches($moduleContent, "(async )?function ([^(]+)\((.*?)\)")
+		$functionMatches = [Regex]::Matches($moduleContent, "(async )?function ([^(<]+)(<.*>)?\((.*?)\)")
 		$allArguments = @()
 
 		$functions = $functionMatches | % {
-			$arguments = ((StripGeneric $_.Groups[3].Value) -split ",\s") | % {$_.Split(':')[0] -replace '\?$', ''}
+			$argsMatch = [Regex]::Match($_.Groups[4].Value, '^(^\s*\{\s*)?(.*?)\s*(\}|$)')
+			$isBrackets = $argsMatch.Groups[1].Length -gt 0
+			$arguments = ((StripGeneric $argsMatch.Groups[2]) -split ",\s") | % {$_.Split(':')[0] -replace '\?$', ''}
 			if ($arguments) { $allArguments += $arguments }
 
 			return @{
 				Name = $_.Groups[2].Value;
 				Async = $_.Groups[1].Value -ne "";
+				IsBrackets = $isBrackets;
 				Arguments = $arguments;
 			}
 		}
@@ -177,14 +180,20 @@ switch ($action) {
 		$functions | % {
 			$async = ""
 			$await = ""
+			$openBracket = ""
+			$closeBracket = ""
 			if ($_.Async) { $async = " async" }
 			if ($_.Async) { $await = " await" }
+			if ($_.IsBrackets) { $openBracket = "{" }
+			if ($_.IsBrackets) { $closeBracket = "}" }
+			$arguments = (@($openBracket, ($_.Arguments -join ", "), $closeBracket) | ? { $_ }) -join " "
+
 			$describe = @()
 			$describe += "`tdescribe('$($_.Name)', () => {";
 			$describe += "`t`tit('should return something',$async () => {"
-			$describe += "`t`t`tconst result =$await $original.$($_.Name)($($_.Arguments -join ", "));"
+			$describe += "`t`t`tconst result =$await $original.$($_.Name)($arguments);"
 			$describe += ""
-			$describe += "`t`t`texpect($moduleName.$($_.Name)).toBeCalledWith($($_.Arguments -join ", "));"
+			$describe += "`t`t`texpect($moduleName.$($_.Name)).toBeCalledWith($arguments);"
 			$describe += "`t`t`texpect(result).toEqual('something');"
 			$describe += "`t`t});"
 			$describe += "`t});";
