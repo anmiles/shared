@@ -92,7 +92,10 @@ repo -quiet:$quiet -action {
 			if ($test) {
 				$test = $test.Trim().Replace(" $([char]8250) ", " ").Replace(" > ", " ")
 				$args += "--testNamePattern 'src/lib/$test'"
-				$args += "src/lib/__tests__/$test.test.ts"
+				$test -match '^((.+)/)?([^\/]+)$' | Out-Null
+				$filename = $matches[3]
+				$directory = $matches[2]
+				$args += (@("src/lib", $matches[2], "__tests__", "$filename.test.ts") | ? { $_ }) -join "/"
 			}
 
 			if ($args.Length) {
