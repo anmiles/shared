@@ -31,8 +31,10 @@ Function global:shpath([string]$path, [switch]$native, [switch]$resolve) {
     $path = $path -replace '/', '\'
     if ($native -and $env:WSL_ROOT) { $path = $path.Replace($env:GIT_ROOT, $env:WSL_ROOT) }
     $drive, $dir = $path -split ":"
+    if ($drive.Length -gt 1) { $dir = $null }
+    $root = switch($native) { $true { "/mnt/" } $false { "/" } }
     if (!$dir) { $path = $path -replace '\\', '/' -replace ' ', '\ ' }
-    else { $path = "/" + $drive.ToLower() + $dir -replace '\\', '/' -replace ' ', '\ ' }
+    else { $path = $root + $drive.ToLower() + $dir -replace '\\', '/' -replace ' ', '\ ' }
     if ($resolve) { $path = $path -replace '~', "`$HOME"}
     return $path
 }
