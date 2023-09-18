@@ -4,9 +4,11 @@
 .DESCRIPTION
     Add all changes to stage, commit if needed (asks commit message) and push repository in current branch.
     Can skip commits particular repositories by specifiying "skip" or "-" as commit message
+    Can revert all changese by specifying "discard" or "!" as commit message
     Can show diff by specifying "diff" or "?" as commit message
     Can show difftool by specifying "difftool" or "??" as commit message
     Can accept different messages for each file by specifying "split" or "+" as commit message
+    Can open editor by specifying "edit" or "~" as commit message
     Apply script only for specified repository name or for current working directory if nothing specified, or apply for all repositories if "all" specified
 .PARAMETER name
     Apply script only for specified repository name or for current working directory if nothing specified, or apply for all repositories if "all" specified
@@ -29,13 +31,13 @@
 .PARAMETER minor
     Whether to skip CI pipeline
 .EXAMPLE
-    save 
+    save
     # add and commit the current directory
 .EXAMPLE
-    save this 
+    save this
     # add and commit the current directory
 .EXAMPLE
-    save lib "Autocommit" 
+    save lib "Autocommit"
     # add and commit the repository "lib" and preset commit message
 .EXAMPLE
     save all -push
@@ -160,6 +162,12 @@ repo -name $name -quiet:$quiet -action {
                     $skip = $true
                     $message = $null
                     discard
+                    continue
+                }
+
+                if ($message -eq "edit" -or $message -eq "~") {
+                    $message = $null
+                    edit
                     continue
                 }
 
