@@ -7,7 +7,7 @@
 .PARAMETER op
     1password account to get variables
 .PARAMETER aws
-    AWS profile to get variables 
+    AWS profile to get variables
 .PARAMETER terraform
     Terraform state to get variables. If state contains "." - consider $state.$workspace format
 .PARAMETER names
@@ -35,10 +35,14 @@ Param (
     [string]$aws,
     [string]$terraform,
     [string[]]$names,
-    [switch]$silent
+    [switch]$silent,
+    [switch]$op_disabled
 )
+# Whether to ask op items instead of getting them
+$op_disabled = $env:OP_DISABLED -eq "1"
 
-$op_disabled = $true
+# Whether to use sh version of op
+$op_sh = $env:OP_SH
 
 $nameString = $names -join ","
 
@@ -47,20 +51,32 @@ if ($op) {
         Write-Host "Getting $nameString from 1password"
     }
 
-    $names | % {
-        if ($op_disabled) {
-            $result = @{ exitCode = 1; err = "1password disabled" }
-        } else {
-            $result = exec op "item get $_ --fields label=password"
+    if ($op_sh -and !$op_disabled) {
+        $values = @(sh "~/op.sh $op $names")
+
+        if ($?) {
+            for ($i = 0; $i -lt $names.Length; $i ++) {
+                Set-Variable -Force -Name $names[$i] -Value $values[$i] -Scope 1
+            }
+
+            exit
         }
 
-        if ($result.exitCode -eq 1) {
+        $op_disabled = $true
+    }
+
+    $names | % {
+        if (!$op_disabled) {
+            $result = exec op "item get $_ --fields label=password"
+
             if ($result.err.Contains("op signin") -or $result.err.Contains("sign in")) {
                 iex $(Get-Content $env:OP_CODE | op signin --account $op)
                 $result = exec op "item get $_ --fields label=password"
-            } else {
-                $result = @{ output = ask -new $_ -secure }
             }
+        }
+
+        if ($op_disabled -or $result.exitCode -eq 1) {
+            $result = @{ output = ask -new $_ -secure }
         }
 
         Set-Variable -Force -Name $_ -Value $result.output -Scope 1
