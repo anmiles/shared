@@ -61,6 +61,16 @@ $fields = @(
 	@{Name = "YEAR"; Callback = $function:GetYearString}
 )
 
+Function CreateFSEntry($name, $content, [switch]$Directory) {
+	Write-Host "Creating $name ... " -NoNewLine
+	if ($Directory) {
+		mkdir $name -Force | Out-Null
+	} else {
+		file $name $content
+	}
+	Write-Host "done!"
+}
+
 switch ($action) {
 	"init" {
 		$types = @("app", "lib")
@@ -88,19 +98,19 @@ switch ($action) {
 				$dst = $_.FullName.Replace($repo, $location).Replace("\.$arg", "")
 
 				if ($_.PSIsContainer) {
-					mkdir $dst -Force | Out-Null
+					CreateFSEntry $dst -Directory
 				} else {
 					$content = file $_.FullName
 					$fields | % {
 						$content = $content.Replace("{$($_.Name)}", $_.Value)
 					}
-					file $dst $content
+					CreateFSEntry $dst $content
 				}
 			}
 
 			$newSrc = Join-Path $location "src"
 			$newReadme = Join-Path $location "README.md"
-			mkdir $newSrc -Force | Out-Null
+			CreateFSEntry $newSrc -Directory
 		}
 
 		if ($arg -eq "app") {
