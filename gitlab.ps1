@@ -54,6 +54,8 @@ Param (
 	[nullable[bool]]$private = $null
 )
 
+$default_remote_name = "origin"
+
 $json = $null
 if (Test-Path $env:ENV_REPOSITORIES_FILE) {
 	$json = [System.Collections.ArrayList](file $env:ENV_REPOSITORIES_FILE | ConvertFrom-Json)
@@ -82,6 +84,23 @@ Function Load-GitlabData($url, $method = "GET") {
 Function Get-Local($this_repo) {
 	if ($this_repo -eq "all") { return $null }
 	return $this_repo.Replace($env:GIT_ROOT, "").Replace("\", "/").Trim("/")
+}
+
+Function Get-Remote($this_repo) {
+	if (git branch) {
+		$branch = git -C $this_repo rev-parse --abbrev-ref HEAD
+		$remote_name = git -C $this_repo config "branch.$branch.remote"
+	} else {
+		$remote_name = $default_remote_name
+	}
+
+	$remote = git -C $this_repo config --get "remote.$remote_name.url"
+
+	if (!$remote) {
+		out "No remote detected for this_repo = {Yellow:$this_repo} and branch = '{Yellow:$branch}' and remote_name = '{Yellow:$remote_name}'"
+	}
+
+	return $remote
 }
 
 $shared_repositories = $env:SHARED_REPOSITORIES | ConvertFrom-Json
@@ -135,19 +154,27 @@ if ($scan) {
 		$this_repo = Split-Path $_.FullName -Parent
 		$this_name = Split-Path $this_repo -Leaf
 		$this_local = Get-Local $this_repo
-		$this_remote = git -C $this_repo config --get remote.origin.url
+		$this_remote = Get-Remote $this_repo
+
+		if (!$this_remote) { return }
 
 		$existing = $json | ? { $_.local -eq $this_local }
 		$existing | % { $json.Remove($_) }
 
-		$repositories_all.Values | ? { $_.ssh_url_to_repo -eq $this_remote } | % {
-			$json.Add([PSCustomObject]@{
-				id = $_.id
-				name = $this_name
-				local = $this_local
-				remote = $this_remote
-				default_branch = $_.default_branch
-			}) | Out-Null
+		$repositories_match = $repositories_all.Values | ? { $_.ssh_url_to_repo -eq $this_remote }
+
+		if ($repositories_match) {
+			$repositories_match | % {
+				$json.Add([PSCustomObject]@{
+					id = $_.id
+					name = $this_name
+					local = $this_local
+					remote = $this_remote
+					default_branch = $_.default_branch
+				}) | Out-Null
+			}
+		} else {
+			out "No remote matched for this_repo = {Yellow:$this_repo} and this_remote = '{Yellow:$this_remote}'"
 		}
 	}
 

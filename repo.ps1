@@ -99,6 +99,12 @@ Function InvokeRepo($repository) {
 
     $repo = Join-Path $env:GIT_ROOT $repository.local
     if (!$quiet) { Write-Host $repo -ForegroundColor Yellow }
+
+    if (!(Test-Path $repo)) {
+        Write-Host "$repo does not exist" -ForegroundColor DarkYellow
+        return
+    }
+
     Push-Location $repo
 
     $branch = git rev-parse --abbrev-ref HEAD
