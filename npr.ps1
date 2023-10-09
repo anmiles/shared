@@ -3,8 +3,8 @@
     Wrapper to run npm commands in selected repositories
 .PARAMETER action
     One of { install | lint | build | test }
-.PARAMETER test
-    Specific file to test (if action = test)
+.PARAMETER lib
+    Specific lib to test (if action = test)
 .PARAMETER coverage
     Whether to collect coverage  (if action = test)
 .PARAMETER updateSnapshots
@@ -25,7 +25,7 @@
     npr lint
     # run `npm run lint:fix`
 .EXAMPLE
-	npr test -t library -ciwu
+	npr test -l library -ciwu
 	# run `npm run test:watch:coverage` to execute tests in src/lib/__tests__/library.test.ts with covering src/lib/library.ts and updating snapshots in watch mode with debugger
 .EXAMPLE
     npr build
@@ -34,7 +34,8 @@
 
 Param (
     [ValidateSet('', 'install', 'lint', 'test', 'build')][string]$action,
-    [string]$test,
+    [string]$lib,
+    [Parameter(ValueFromRemainingArguments = $true)][string[]]$specs,
     [switch]$coverage,
     [switch]$inspect,
     [switch]$watch,
@@ -70,11 +71,13 @@ repo -quiet:$quiet -action {
 			}
 
 			if ($watch) {
-				if ($test) {
+				if ($lib) {
 					$args += "--watch"
 				} else {
 					$args += "--watchAll"
 				}
+
+				$args += "--verbose=false"
 			}
 
 			if ($inspect) {
@@ -84,15 +87,18 @@ repo -quiet:$quiet -action {
 			if ($coverage) {
 				$args += "--coverage"
 
-				if ($test) {
-					$args += "--collectCoverageFrom='src/lib/$test.ts'"
+				if ($lib) {
+					$args += "--collectCoverageFrom='src/lib/$lib.ts'"
 				}
 			}
 
-			if ($test) {
-				$test = $test.Trim().Replace(" $([char]8250) ", " ").Replace(" > ", " ")
-				$args += "--testNamePattern 'src/lib/$test'"
-				$test -match '^((.+)/)?([^\/]+)$' | Out-Null
+			if ($lib) {
+				if ($specs) {
+					$pattern = (($specs | % { $_.Replace(" $([char]8250) ", " ").Replace(" > ", " ") }) | ? { $_ }) -join " "
+					$args += "--testNamePattern '$pattern'"
+				}
+
+				$lib -match '^((.+)/)?([^\/]+)$' | Out-Null
 				$filename = $matches[3]
 				$directory = $matches[2]
 				$args += (@("src/lib", $matches[2], "__tests__", "$filename.test.ts") | ? { $_ }) -join "/"
