@@ -26,6 +26,24 @@ Function global:ex() {
     }
 }
 
+Function global:enc($num) {
+    switch ($num) {
+        866 { return [System.Text.Encoding]::GetEncoding("cp866") }
+        1251 { return [System.Text.Encoding]::GetEncoding("Windows-1251") }
+        1252 { return [System.Text.Encoding]::GetEncoding("Windows-1252") }
+        default { return [System.Text.Encoding]::UTF8 }
+    }
+}
+
+Function global:charset($text, $from, $to) {
+    $from = enc $from
+    $to = enc $to
+
+    $bytes = $to.GetBytes($text)
+    $text = $from.GetString($bytes)
+    return $text
+}
+
 Function global:shpath([string]$path, [switch]$native, [switch]$resolve) {
     if (!$path) { return $path }
     $path = $path -replace '/', '\'
