@@ -56,30 +56,30 @@ $expected_result = @{
 	"H:\photos\M2U01234.mp4" = @{ Taken = $null }
 }
 
-$actual_result = media -mock $mock -catchErrors:$true
+$received_result = media -mock $mock -catchErrors:$true
 
-$actual_keys = $actual_result.Keys
-$expected_keys = $actual_result.Keys
+$received_keys = $received_result.Keys
+$expected_keys = $received_result.Keys
 
-$actual_result.Keys | % {
+$received_result.Keys | % {
 	if (!$expected_result[$_]) {
 		out "File is not expected {Yellow:$_}" -ForegroundColor Red
 	}
 }
 
 $expected_result.Keys | % {
-	if (!$actual_result[$_]) {
+	if (!$received_result[$_]) {
 		out "File is missing {Yellow:$_}" -ForegroundColor Red
 	} else {
-		if ($actual_result[$_].Taken -ne $expected_result[$_].Taken) {
-			out "Taken date is wrong for file {Yellow:$_}: {DarkYellow:$($actual_result[$_].Taken.ToString("yyyy.MM.dd_HH.mm.ss"))} (should be {Green:$($expected_result[$_].Taken.ToString("yyyy.MM.dd_HH.mm.ss"))})" -ForegroundColor Red
+		if ($received_result[$_].Taken -ne $expected_result[$_].Taken) {
+			out "Taken date is wrong for file {Yellow:$_}: {DarkYellow:$($received_result[$_].Taken.ToString("yyyy.MM.dd_HH.mm.ss"))} (should be {Green:$($expected_result[$_].Taken.ToString("yyyy.MM.dd_HH.mm.ss"))})" -ForegroundColor Red
 		}
 
-		if ($actual_result[$_].LastWriteTime -ne $expected_result[$_].Taken) {
-			if (!$actual_result[$_].LastWriteTime) {
+		if ($received_result[$_].LastWriteTime -ne $expected_result[$_].Taken) {
+			if (!$received_result[$_].LastWriteTime) {
 				out "LastWriteTime is missing for file {Yellow:$_} (should be {Green:$($expected_result[$_].Taken.ToString("yyyy.MM.dd_HH.mm.ss"))})" -ForegroundColor Red
 			} else {
-				out "LastWriteTime is wrong for file {Yellow:$_}: {DarkYellow:$($actual_result[$_].LastWriteTime.ToString("yyyy.MM.dd_HH.mm.ss"))} (should be {Green:$($expected_result[$_].Taken.ToString("yyyy.MM.dd_HH.mm.ss"))})" -ForegroundColor Red
+				out "LastWriteTime is wrong for file {Yellow:$_}: {DarkYellow:$($received_result[$_].LastWriteTime.ToString("yyyy.MM.dd_HH.mm.ss"))} (should be {Green:$($expected_result[$_].Taken.ToString("yyyy.MM.dd_HH.mm.ss"))})" -ForegroundColor Red
 			}
 		}
 	}

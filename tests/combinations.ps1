@@ -9,12 +9,12 @@ Function Test {
 }
 
 @(
-    @{Input = "cat"; Expect = @("cat")},
-    @{Input = "?cat"; Expect = @("cat")},
-    @{Input = "ca()t"; Expect = @("cat")},
-    @{Input = "cas?t"; Expect = @("cat", "cast")},
-    @{Input = "ca(s)?t"; Expect = @("cat", "cast")},
-    @{Input = "ca(r|s)t"; Expect = @("cart", "cast")},
-    @{Input = "ca(r|s)?t"; Expect = @("cat", "cart", "cast")}
-    @{Input = "car??(pe)?t"; Expect = @("cat", "cart", "capet", "carpet")}
+    @{Input = "cat"; Expected = @("cat")},
+    @{Input = "?cat"; Expected = @("cat")},
+    @{Input = "ca()t"; Expected = @("cat")},
+    @{Input = "cas?t"; Expected = @("cat", "cast")},
+    @{Input = "ca(s)?t"; Expected = @("cat", "cast")},
+    @{Input = "ca(r|s)t"; Expected = @("cart", "cast")},
+    @{Input = "ca(r|s)?t"; Expected = @("cat", "cart", "cast")}
+    @{Input = "car??(pe)?t"; Expected = @("cat", "cart", "capet", "carpet")}
 )
