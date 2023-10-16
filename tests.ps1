@@ -25,35 +25,58 @@ Function Stringify($obj) {
     return $str
 }
 
-Import-Module $file -Force | % {
-    if (!$function:Test) {
-        Function Test {
-            Param (
-                [Parameter(Mandatory = $true)]$value
-            )
-            return $value
-        }
-    }
+Function Test {
+    Param (
+        [Parameter(Mandatory = $true)]$value
+    )
+    return $value
+}
 
+Function ShowInput {
+    Param (
+        [Parameter(Mandatory = $true)]$value
+    )
+    return $value
+}
+
+Function ShowReceived {
+    Param (
+        [Parameter(Mandatory = $true)]$value
+    )
+    return $value
+}
+
+Function ShowExpected {
+    Param (
+        [Parameter(Mandatory = $true)]$value
+    )
+    return $value
+}
+
+$data = Import-Module $file -Force | % {
     $test = $_
-    $test.Input = Stringify($test.Input)
+    $test.Input = Stringify(ShowInput($test.Input))
     if (!$test.Value) { $test.Value = $test.Input }
     $test.Value = Stringify($test.Value)
-    $test.Actual = Stringify(Test($test.Value))
-    $test.Expect = Stringify($test.Expect)
+    $test.Received = Stringify(ShowReceived(Test($test.Value)))
+    $test.Expected = Stringify(ShowExpected($test.Expected))
 
     [PsCustomObject]@{
-        Color = switch($test.Actual) {$test.Expect { "32" } default { "31" }};
-        Result = switch($test.Actual) {$test.Expect { "PASS" } default { "FAIL" }};
+        Color = switch($test.Received) {$test.Expected { "32" } default { "31" }};
+        Result = switch($test.Received) {$test.Expected { "PASS" } default { "FAIL" }};
         Input = $test.Input;
-        Actual = $test.Actual;
-        Expect = $test.Expect;
+        Received = $test.Received;
+        Expected = $test.Expected;
         Comment = $test.Comment;
     }
-} | Format-Table -Property @(
+}
+
+$data | Format-Table -Property @(
     @{Label = "Result"; Expression = {[char]27 + "[" + $_.Color + "m" + $_.Result}},
     @{Label = "Input"; Expression = {$_.Input}},
-    @{Label = "Actual"; Expression = {$_.Actual}},
-    @{Label = "Expect"; Expression = {$_.Expect}},
+    @{Label = "Received"; Expression = {$_.Received}},
+    @{Label = "Expected"; Expression = {$_.Expected}},
     @{Label = "Comment"; Expression = {$_.Comment + [char]27 + "[0m"}}
 )
+
+$data | ? { $_.Result -eq "FAIL" }
