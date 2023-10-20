@@ -53,6 +53,17 @@ Function ShowExpected {
     return $value
 }
 
+$colors = @{
+    $true = [char]27 + "[32m";
+    $false = [char]27 + "[31m";
+    "0" = [char]27 + "[0m";
+}
+
+$results = @{
+    $true = "PASS"
+    $false = "FAIL"
+}
+
 $data = Import-Module $file -Force | % {
     $test = $_
     $test.Input = Stringify(ShowInput($test.Input))
@@ -62,8 +73,8 @@ $data = Import-Module $file -Force | % {
     $test.Expected = Stringify(ShowExpected($test.Expected))
 
     [PsCustomObject]@{
-        Color = switch($test.Received) {$test.Expected { "32" } default { "31" }};
-        Result = switch($test.Received) {$test.Expected { "PASS" } default { "FAIL" }};
+        Color = $colors[$test.Received -eq $test.Expected];
+        Result = $results[$test.Received -eq $test.Expected];
         Input = $test.Input;
         Received = $test.Received;
         Expected = $test.Expected;
@@ -72,11 +83,18 @@ $data = Import-Module $file -Force | % {
 }
 
 $data | Format-Table -Property @(
-    @{Label = "Result"; Expression = {[char]27 + "[" + $_.Color + "m" + $_.Result}},
+    @{Label = "Result"; Expression = {$_.Color + $_.Result}},
     @{Label = "Input"; Expression = {$_.Input}},
     @{Label = "Received"; Expression = {$_.Received}},
     @{Label = "Expected"; Expression = {$_.Expected}},
-    @{Label = "Comment"; Expression = {$_.Comment + [char]27 + "[0m"}}
+    @{Label = "Comment"; Expression = {$_.Comment}}
 )
 
-$data | ? { $_.Result -eq "FAIL" }
+$colors["0"]
+
+$data | ? { $_.Result -eq "FAIL" } | % {
+    "--------"
+    "Expected: $($colors[$true])$($_.Expected)$($colors["0"])"
+    "Received: $($colors[$false])$($_.Received)$($colors["0"])"
+    $colors["0"]
+}
