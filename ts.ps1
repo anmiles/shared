@@ -25,7 +25,22 @@ repo ts {
 	}
 }
 
+function AddToFile($file, $line) {
+	if ((Test-Path $file)) {
+		$contents = file $file
+	} else {
+		$contents = ""
+	}
+
+	file $file ($contents.Trim() + "`n$arg`n")
+}
+
 function AddToJSON($file, $key, $line) {
+	if (!(Test-Path $file)) {
+		out "{DarkYellow:Skipping AddToJSON for non-existing file $file}"
+		return
+	}
+
 	$json = file $file
 	$bound = "`"|'|\b"
 	$parts = @($bound, $key, $bound, "\s*:\s*", "\[|\{", "\n\s*")
@@ -227,6 +242,6 @@ switch ($action) {
 		AddToJSON -file tsconfig.json -key "exclude" -line "`"$arg/`","
 		AddToJSON -file jest.config.js -key "collectCoverageFrom" -line "'!<rootDir>/$arg/**',"
 		AddToJSON -file .eslintrc.js -key "ignorePatterns" -line "'$arg/',"
-		file .gitignore ((file .gitignore).Trim() + "`n$arg`n")
+		AddToFile -file .gitignore $arg
 	}
 }
