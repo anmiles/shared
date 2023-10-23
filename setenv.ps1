@@ -26,7 +26,7 @@ Function global:ex() {
     }
 }
 
-Function global:enc($num) {
+Function global:getenc($num) {
     switch ($num) {
         866 { return [System.Text.Encoding]::GetEncoding("cp866") }
         1251 { return [System.Text.Encoding]::GetEncoding("Windows-1251") }
@@ -35,9 +35,9 @@ Function global:enc($num) {
     }
 }
 
-Function global:charset($text, $from, $to) {
-    $from = enc $from
-    $to = enc $to
+Function global:enc($text, $from, $to) {
+    $from = getenc $from
+    $to = getenc $to
 
     $bytes = $to.GetBytes($text)
     $text = $from.GetString($bytes)
