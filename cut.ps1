@@ -84,7 +84,7 @@ Function GetTimeSpan {
     if ($str -eq $null -or $str.Length -eq 0) { return New-TimeSpan -Seconds $default }
 
     switch (($str -split ":").Length) {
-        1 { return New-TimeSpan -Seconds $str }
+        1 { return New-TimeSpan -Start "0:0:0" -End "0:0:$str" }
         2 { return New-TimeSpan -Start "0:0:0" -End "0:$str" }
         3 { return New-TimeSpan -Start "0:0:0" -End $str }
         default { throw "Expected formats: '%d', '%d:%d', '%d:%d:%d', found $str with $parts parts"}
