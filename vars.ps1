@@ -52,7 +52,8 @@ if ($op) {
     }
 
     if ($op_sh -and !$op_disabled) {
-        $values = @(sh "~/op.sh $op $names")
+        $shpath = shpath -native (Resolve-Path "$env:GIT_ROOT/scripts/op.sh").Path
+        $values = @(sh "$shpath $op $names")
 
         if ($?) {
             for ($i = 0; $i -lt $names.Length; $i ++) {

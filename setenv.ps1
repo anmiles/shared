@@ -51,8 +51,9 @@ Function global:shpath([string]$path, [switch]$native, [switch]$resolve) {
     $drive, $dir = $path -split ":"
     if ($drive.Length -gt 1) { $dir = $null }
     $root = switch($native) { $true { "/mnt/" } $false { "/" } }
-    if (!$dir) { $path = $path -replace '\\', '/' -replace ' ', '\ ' }
-    else { $path = $root + $drive.ToLower() + $dir -replace '\\', '/' -replace ' ', '\ ' }
+    # commented because couldn't find path with an escaped space
+    if (!$dir) { $path = $path -replace '\\', '/' <# -replace ' ', '\ ' #> }
+    else { $path = $root + $drive.ToLower() + $dir -replace '\\', '/' <# -replace ' ', '\ ' #> }
     if ($resolve) { $path = $path -replace '~', "`$HOME"}
     return $path
 }
