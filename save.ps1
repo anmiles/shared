@@ -65,8 +65,10 @@ $commit_message_pattern = switch($env:COMMIT_MESSAGE_STRICT) {
     default { "" }
 }
 
-function AddAndCommit($filename, $message) {
-    git add --all $filename
+$min_length = 3
+
+function AddAndCommit([string]$message, [Parameter(ValueFromRemainingArguments = $true)][string[]]$filenames) {
+    $filenames | % { git add --all $_ }
 
     if ($LastExitCode -ne 0) {
         out "{Red:Unable to add some files, see error details above}"
@@ -183,13 +185,31 @@ repo -name $name -quiet:$quiet -action {
                         ($_ -replace "^(\s*\S+\s+)", ('$1' + $space)) + " "
                     } > $splitfile
                     iex "cmd /c $(git config core.editor) $splitfile"
+                    $files = @{}
+
                     Get-Content $splitfile | % {
                         ($none, $status, $message) = $_ -split "^(.{$maxLength}) "
                         $filename = $status -replace "^(\s*\S+\s+)", ""
-                        AddAndCommit -filename $filename -message $message
+
+                        if (!$files[$message]) {
+                            $files[$message] = @()
+                        }
+
+                        $files[$message] += $filename
                         $unpushed++
                     }
+
+                    $files.Keys | % {
+                        AddAndCommit $_ $files[$_]
+                    }
+
                     Remove-Item -Force $splitfile
+                    continue
+                }
+
+                if ($message.Length -lt $min_length) {
+                    Write-Host "Commit message should be at least $min_length symbols long" -ForegroundColor Red
+                    $message = $null
                     continue
                 }
 
@@ -204,7 +224,7 @@ repo -name $name -quiet:$quiet -action {
         }
 
         if (!$skip) {
-            AddAndCommit . $message
+            AddAndCommit $message .
             $unpushed += (git log --format=format:%H origin/$branch..$branch).Length
         }
     }
