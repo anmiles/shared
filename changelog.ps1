@@ -14,12 +14,18 @@
 #>
 
 Param (
-    [Parameter(Mandatory = $true)][ValidateSet('major', 'minor', 'patch')][string]$mode,
+    [Parameter(Mandatory = $true)][string]$mode,
     [string]$name = "this",
     [string[]]$added,
     [string[]]$changed,
     [string[]]$removed
 )
+
+$modes = @("major", "minor", "patch")
+
+if (!($modes.Contains($mode))) {
+	throw "Expected `$mode to be one of [ $modes ], received '$mode'";
+}
 
 repo -name $name -quiet -action {
 	$filename = "CHANGELOG.md"
@@ -40,6 +46,11 @@ repo -name $name -quiet -action {
 	}
 
 	$last_version[$mode] = $last_version[$mode] + 1
+
+	for ($i = $modes.indexOf($mode) + 1; $i -lt $modes.Length; $i ++) {
+		$last_version[$modes[$i]] = 0
+	}
+
 	$last_version_string = "$($last_version.major).$($last_version.minor).$($last_version.patch)"
 	$date_string = (Get-Date).ToString("yyyy-MM-dd")
 
