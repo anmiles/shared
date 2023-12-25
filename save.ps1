@@ -67,8 +67,14 @@ $commit_message_pattern = switch($env:COMMIT_MESSAGE_STRICT) {
 
 $min_length = 3
 
-function AddAndCommit([string]$message, [Parameter(ValueFromRemainingArguments = $true)][string[]]$filenames) {
-    $filenames | % { git add --all $_ }
+function AddAndCommit($message, $filenames) {
+    if ($filenames -is [String]) {
+        $filenames = @($filenames)
+    }
+
+    $filenames | % {
+        git add --all $_
+    }
 
     if ($LastExitCode -ne 0) {
         out "{Red:Unable to add some files, see error details above}"
