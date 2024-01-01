@@ -158,7 +158,7 @@ if ($timestamp) {
 
 $output_filename = $output_filename + $ext
 
-while (Test-Path $output_filename) {
+while (Test-Path -LiteralPath $output_filename) {
     $output_filename = [Regex]::Replace($output_filename, '(\((\d+)\))?(\.\w+)$', { param($match) "($([Math]::max(2, [int]$match.Groups[2].Value + 1)))$($match.Groups[3].Value)" })
 }
 
