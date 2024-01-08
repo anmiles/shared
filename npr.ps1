@@ -81,7 +81,9 @@ repo -quiet:$quiet -action {
 			}
 
 			if ($inspect) {
-				$args += "--inspect"
+				$command = "node --inspect-brk ./node_modules/jest/bin/jest.js"
+			} else {
+				$command += " --"
 			}
 
 			if ($coverage) {
@@ -105,12 +107,13 @@ repo -quiet:$quiet -action {
 			}
 
 			if ($args.Length) {
-				$command += " -- " + ($args -join " ")
+				$command += " " + ($args -join " ")
 			}
 		}
 
 		$timer.StartTask($title)
 
+		$command
 		iex $command
 		if (!$?) { $exitCodes ++ }
 

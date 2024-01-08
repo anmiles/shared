@@ -2,7 +2,9 @@
 .SYNOPSIS
     Wrapper to run `npm run test:watch:coverage` for one file or all files
 .PARAMETER lib
-    Specific lib to test (if action = test)
+    Specific lib to test
+.PARAMETER inspect
+    Whether to inspect test with inspect-brk
 .EXAMPLE
     tdd
     # run tdd for current repo
@@ -16,7 +18,8 @@
 
 Param (
     [string]$lib,
+    [switch]$inspect,
     [Parameter(ValueFromRemainingArguments = $true)][string[]]$specs
 )
 
-npr test -w -c -lib $lib -specs $specs
+npr test -watch -coverage -inspect:$inspect -lib $lib -specs $specs
