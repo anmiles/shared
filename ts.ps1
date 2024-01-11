@@ -19,7 +19,7 @@ Param (
 
 $location = Get-Location
 
-repo ts {
+repo ts -quiet -action {
 	if ($repo -eq $location) {
 		throw "Cannot init ts app itself"
 	}
@@ -104,7 +104,7 @@ switch ($action) {
 			}
 		}
 
-		repo ts {
+		repo ts -quiet -action {
 			$items = @()
 			$items += Get-ChildItem -Recurse | ? { $fullName = $_.FullName; return ($types | ? {$fullName -match "\\.$_"}).Length -eq 0 }
 			$items += Get-ChildItem ".$arg" -Recurse
