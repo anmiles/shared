@@ -20,9 +20,19 @@ if (Test-Path $vars.ENV_FILE) {
     }
 }
 
-Function global:ex() {
+Function global:ex([switch]$confirm) {
     if ($exitCode = $lastExitCode) {
-        throw "Command failed with exit code was $exitCode"
+        if ($confirm) {
+            out "{Yellow:Press ENTER to continue or any key to exit}"
+            $key = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown').VirtualKeyCode
+
+            if ($key -ne 13) {
+                exit 1
+            }
+        } else {
+            out "{Red:Command failed with exit code $exitCode}"
+            exit 1
+        }
     }
 }
 
