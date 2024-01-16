@@ -110,8 +110,24 @@ if ($scan) {
 		$json.Clear()
 	}
 
-	Write-Host "Scanning repositories..."
 	$repositories_all = @{}
+
+	if ($env:LOCAL_REPOSITORIES_ROOT) {
+		Write-Host "Scanning local repositories..."
+
+		Get-ChildItem $env:LOCAL_REPOSITORIES_ROOT -Directory | % {
+			$id = $_.FullName
+			$default_branch = git -C $_.FullName rev-parse --abbrev-ref HEAD
+
+			$repositories_all[$id] = @{
+				id = $id
+				ssh_url_to_repo = $id
+				default_branch = $default_branch
+			}
+		}
+	}
+
+	Write-Host "Scanning gitlab repositories..."
 
 	if ($repo -eq "all") {
 		$shared_repositories | % {
