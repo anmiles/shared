@@ -32,7 +32,7 @@ function AddToFile($file, $line) {
 		$contents = ""
 	}
 
-	file $file ($contents.Trim() + "`n$arg`n")
+	file $file ($contents.Trim() + "`n$line`n")
 }
 
 function AddToJSON($file, $key, $line) {
@@ -70,7 +70,6 @@ function GetYearString(){
 
 $fields = @(
 	@{Name = "NAME"; Input = $true}
-	@{Name = "PATH"; Input = $true}
 	@{Name = "DESCRIPTION"; Input = $true}
 	@{Name = "DATE"; Callback = $function:GetDateString}
 	@{Name = "YEAR"; Callback = $function:GetYearString}
@@ -101,6 +100,7 @@ switch ($action) {
 			}
 			if ($_.Callback) {
 				$_.Value = $_.Callback.Invoke($fields)[0]
+				Write-Host "value for $($_.Name) is $($_.Value)"
 			}
 		}
 
@@ -126,10 +126,6 @@ switch ($action) {
 			$newSrc = Join-Path $location "src"
 			$newReadme = Join-Path $location "README.md"
 			CreateFSEntry $newSrc -Directory
-		}
-
-		if ($arg -eq "app") {
-			AddToJSON -file package.json -key "scripts" -line "`"start`": `"node ./dist/index.js`""
 		}
 	}
 
@@ -238,10 +234,10 @@ switch ($action) {
 	}
 
 	"ignore" {
-		$arg = $arg -replace '^\/?(.*?)\/?$', '$1'
-		AddToJSON -file tsconfig.json -key "exclude" -line "`"$arg/`","
-		AddToJSON -file jest.config.js -key "collectCoverageFrom" -line "'!<rootDir>/$arg/**',"
-		AddToJSON -file .eslintrc.js -key "ignorePatterns" -line "'$arg/',"
-		AddToFile -file .gitignore $arg
+		$ignore = $arg -replace '^\/?(.*?)\/?$', '$1'
+		AddToJSON -file jest.config.js -key "collectCoverageFrom" -line "'!<rootDir>/$ignore/**',"
+		AddToJSON -file .eslintrc.cjs -key "ignorePatterns" -line "'$ignore/',"
+		AddToFile -file .gitignore $ignore
+		AddToFile -file .npmignore $ignore
 	}
 }
