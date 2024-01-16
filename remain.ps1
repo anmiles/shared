@@ -46,7 +46,7 @@ repo -name $name -quiet:$quiet -action {
 
 	out "{Yellow:Set $main_branch default}"
 	gitlab -load "https://gitlab.com/api/v4/projects/$repository_id" -method PUT -data @{default_branch = $main_branch} | Out-Null
-	
+
 	out "{Yellow:Protect $main_branch}"
 	protect $name $main_branch -quiet
 
