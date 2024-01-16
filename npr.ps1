@@ -54,73 +54,71 @@ if ($action) {
 	$actions = @{$action = $actions[$action]}
 }
 
-repo -quiet:$quiet -action {
-	$exitCodes = 0
-    Import-Module $env:MODULES_ROOT\timer.ps1 -Force
-    $timer = Start-Timer
+$exitCodes = 0
+Import-Module $env:MODULES_ROOT\timer.ps1 -Force
+$timer = Start-Timer
 
-	$actions.Keys | % {
-		$title = $_
-		$command = $actions[$_]
+$actions.Keys | % {
+	$title = $_
+	$command = $actions[$_]
 
-		if ($title -eq "test") {
-			$args = @()
+	if ($title -eq "test") {
+		$args = @()
 
-			if ($updateSnapshots) {
-				$args += "--updateSnapshots"
-			}
+		if ($updateSnapshots) {
+			$args += "--updateSnapshots"
+		}
 
-			if ($watch) {
-				if ($lib) {
-					$args += "--watch"
-				} else {
-					$args += "--watchAll"
-				}
-
-				$args += "--verbose=false"
-			}
-
-			if ($inspect) {
-				$command = "node --inspect-brk ./node_modules/jest/bin/jest.js"
+		if ($watch) {
+			if ($lib) {
+				$args += "--watch"
 			} else {
-				$command += " --"
+				$args += "--watchAll"
 			}
 
-			if ($coverage) {
-				$args += "--coverage"
+			$args += "--verbose=false"
+		}
 
-				if ($lib) {
-					$args += "--collectCoverageFrom='src/lib/$lib.ts'"
-				}
-			}
+		if ($inspect) {
+			$command = "node --inspect-brk ./node_modules/jest/bin/jest.js"
+		} else {
+			$command += " --"
+		}
+
+		if ($coverage) {
+			$args += "--coverage"
 
 			if ($lib) {
-				if ($specs) {
-					$pattern = (($specs | % { $_.Replace(" $([char]8250) ", " ").Replace(" > ", " ") }) | ? { $_ }) -join " "
-					$args += "--testNamePattern '$pattern'"
-				}
-
-				$lib -match '^((.+)/)?([^\/]+)$' | Out-Null
-				$filename = $matches[3]
-				$directory = $matches[2]
-				$args += (@("src/lib", $matches[2], "__tests__", "$filename.test.ts") | ? { $_ }) -join "/"
-			}
-
-			if ($args.Length) {
-				$command += " " + ($args -join " ")
+				$args += "--collectCoverageFrom='src/lib/$lib.ts'"
 			}
 		}
 
-		$timer.StartTask($title)
+		if ($lib) {
+			if ($specs) {
+				$pattern = (($specs | % { $_.Replace(" $([char]8250) ", " ").Replace(" > ", " ") }) | ? { $_ }) -join " "
+				$args += "--testNamePattern '$pattern'"
+			}
 
-		$command
-		iex $command
-		if (!$?) { $exitCodes ++ }
+			$lib -match '^((.+)/)?([^\/]+)$' | Out-Null
+			$filename = $matches[3]
+			$directory = $matches[2]
+			$args += (@("src/lib", $matches[2], "__tests__", "$filename.test.ts") | ? { $_ }) -join "/"
+		}
 
-		$timer.FinishTask()
+		if ($args.Length) {
+			$command += " " + ($args -join " ")
+		}
 	}
 
-	$timer.Finish()
+	$timer.StartTask($title)
 
-	if ($exitCodes) { throw }
+	$command
+	iex $command
+	if (!$?) { $exitCodes ++ }
+
+	$timer.FinishTask()
 }
+
+$timer.Finish()
+
+if ($exitCodes) { throw }
