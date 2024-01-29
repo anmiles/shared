@@ -236,7 +236,7 @@ switch ($action) {
 	"ignore" {
 		$ignore = $arg -replace '^\/?(.*?)\/?$', '$1'
 		AddToJSON -file jest.config.js -key "collectCoverageFrom" -line "'!<rootDir>/$ignore/**',"
-		AddToJSON -file .eslintrc.cjs -key "ignorePatterns" -line "'$ignore/',"
+		AddToJSON -file .eslintrc.js -key "ignorePatterns" -line "'$ignore/',"
 		AddToFile -file .gitignore $ignore
 		AddToFile -file .npmignore $ignore
 	}
