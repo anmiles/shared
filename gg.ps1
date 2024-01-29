@@ -16,10 +16,15 @@ Param (
 )
 
 git ls-files | grep $file_pattern | % {
-	$file = $_
-	if (!(Test-Path $file)) {
-		return
-	}
+    $file = $_
 
-	grep $text_pattern ($file.Replace("/", "\\")) | % { "$file`t$_"}
+    if (!(Test-Path $file)) {
+        return
+    }
+
+    if ($text_pattern) {
+        grep $text_pattern ($file.Replace("/", "\\")) | % { "$file`t$_"}
+    } else {
+        "$file"
+    }
 }
