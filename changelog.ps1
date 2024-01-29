@@ -21,6 +21,10 @@ Param (
     [string[]]$removed
 )
 
+if ((git diff --name-only | grep CHANGELOG.md) -or (git diff --name-only --cached | grep CHANGELOG.md)) {
+	throw "CHANGELOG.md is changed but not committed yet. Shouldn't add multiple changelog entries for one commit"
+}
+
 $modes = @("major", "minor", "patch")
 
 if (!($modes.Contains($mode))) {
@@ -73,6 +77,7 @@ repo -name $name -quiet -action {
 	}
 
 	$head, $all_parts = $parts
+	$new_part
 	$output = ($head, ($new_part -Join "`n"), ($all_parts -Join "")) -Join "`n"
 	file $filename $output
 }
