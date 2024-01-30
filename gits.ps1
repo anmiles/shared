@@ -67,7 +67,7 @@ $xmlWriter.WriteAttributeString("xmlns:xsi", "http://www.w3.org/2001/XMLSchema-i
 
 $gits = CreateFolder
 
-gitlab -scan all
+gitservice -scan all
 
 repo all {
     $parts = $local.Split("/")

@@ -14,6 +14,9 @@ Param (
 
 $main_branch = "main"
 
+# TODO: add github support
+gitselect -github { throw "Github is not supported yet for 'remain' script" }
+
 repo -name $name -quiet:$quiet -action {
 	if ($default_branch -eq $main_branch) {
 		throw "Default branch is already '$main_branch'"

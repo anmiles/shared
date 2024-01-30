@@ -138,7 +138,7 @@ if ($name -and $name -ne "all" -and $name -ne "it") {
     [Environment]::SetEnvironmentVariable("RECENT_REPO", $name, "Process")
 }
 
-$repositories = gitlab -get all
+$repositories = gitservice -get all
 
 $repositories | % {
     if ($name -eq "all" -or $name -eq $_.name) {

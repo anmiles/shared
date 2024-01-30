@@ -1,2 +1,1 @@
-code $env:ENV_FILE
-code $env:ENV_REPOSITORIES_FILE
+Get-ChildItem $env:GIT_ROOT -File | ? { $_.Name -match '\.json$' } | % { code $_.FullName }
