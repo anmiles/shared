@@ -18,8 +18,11 @@ Param (
 	[switch]$quiet
 )
 
+# TODO: add github support
+gitselect -github { throw "Github is not supported yet for 'jobs' script" }
+
 repo -name this -quiet:$quiet -action {
-	$all_jobs = gitlab -exec {
+	$all_jobs = gitservice -exec {
 		if ($scopes.Count) { $scopes = "&" + (($scopes | % { "scope[]=$_" }) -join "&") }
 		else {$scopes = "" }
 		$page = 1
@@ -29,7 +32,7 @@ repo -name this -quiet:$quiet -action {
 			$url = "https://gitlab.com/api/v4/projects/$repository_id/jobs?per_page=100&page=$page" + $scopes
 			$page ++
 			Write-Host "Load $url " -NoNewline
-			$data = Load-GitlabData $url
+			$data = Load-GitService $url
 			if ($data) {
 				$jobs = $data | ? { !$job -or $job -eq $_.name }
 				$all_jobs += $jobs

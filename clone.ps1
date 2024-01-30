@@ -18,9 +18,19 @@ Param (
     [switch]$crlf
 )
 
-$gitlab_group = $env:WORKSPACE_NAME
-if ($private) { $gitlab_group = "anmiles_$gitlab_group" }
-$source = "git@gitlab.com:$gitlab_group/$name.git"
+$source = gitselect -github {
+    $user = $env:GITHUB_USER
+    "git@github.com:$user/$name.git"
+} -gitlab {
+    $gitlab_group = $env:WORKSPACE_NAME
+
+    if ($private -and ($env:GITLAB_USER -ne $env:WORKSPACE_NAME)) {
+        $gitlab_group = "$($env:GITLAB_USER)_$gitlab_group"
+    }
+
+    "git@gitlab.com:$gitlab_group/$name.git"
+}
+
 $destination = Join-Path $env:GIT_ROOT $destination_name
 
 out "Will clone {Green:$source} into {Green:$destination}"
@@ -67,7 +77,7 @@ if ($LastExitCode -ne 0) {
 }
 
 out "{Yellow: > scan remote info}"
-$repository = gitlab -scan $destination -get -private:$private
+$repository = gitservice -scan $destination -get -private:$private
 
 $remote_branches = git branch --remote --format "%(refname:short)" | % { $_.Replace("origin/", "") }
 if ($remote_branches -and $remote_branches.Contains($repository.default_branch)) {

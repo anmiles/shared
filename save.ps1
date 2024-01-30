@@ -20,10 +20,10 @@
     Whether to suppress asking for merge with default branch
 .PARAMETER empty
     Whether to allow empty commits
-.PARAMETER mr
-    Whether to automatically create merge request on GitLab
+.PARAMETER request
+    Whether to automatically create pull request on Github / merge request on GitLab
 .PARAMETER draft
-    Whether merge request is draft
+    Whether request is draft
 .PARAMETER push
     Whether to push. Forcibly set to "true" if name is "all"
 .PARAMETER squash
@@ -50,7 +50,7 @@ Param (
     [switch]$quiet,
     [switch]$empty,
     [switch]$nomerge = $true,
-    [switch]$mr,
+    [switch]$request,
     [switch]$draft,
     [switch]$push,
     [switch]$squash,
@@ -235,7 +235,7 @@ repo -name $name -quiet:$quiet -action {
         }
     }
 
-    if ($mr -or ($unpushed -and $push)) {
+    if ($request -or ($unpushed -and $push)) {
         if ($squash -and $unpushed -gt 1) {
             $messages = git log --format=format:%s --reverse origin/$branch..$branch
             $aggregated_message = SquashMessages $messages
@@ -254,11 +254,14 @@ repo -name $name -quiet:$quiet -action {
 
         $arguments = @("push")
 
+        # TODO: add github support below
+
         if ($minor) {
+            gitselect -github { throw "Github is not supported yet for creating pull requests" }
             $arguments += "-o ci.skip"
         }
-
-        if ($mr) {
+        if ($request) {
+            gitselect -github { throw "Github is not supported yet for creating pull requests" }
             $arguments += "-o merge_request.create"
 
             if (!$message) {

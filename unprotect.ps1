@@ -17,7 +17,17 @@ Param (
 
 repo -name $name -quiet:$quiet -action {
     Write-Host "Unprotecting branch '$branch_name'..."
-    $unprotect_branch_url = "https://gitlab.com/api/v4/projects/$repository_id/protected_branches/$branch_name"
-    gitlab -load $unprotect_branch_url -method Delete | Out-Null
-}
 
+    gitselect -github {
+        if (!$repository.public) {
+            out "{DarkYellow:Managing protected branches is not allowed on non-public github repositories}"
+            exit
+        }
+
+        $url = "https://api.github.com/repos/$env:GITHUB_USER/$name/branches/$branch_name/protection"
+        gitservice -load $url -method DELETE -token amend | Out-Null
+    } -gitlab {
+        $url = "https://gitlab.com/api/v4/projects/$repository_id/protected_branches/$branch_name"
+        gitservice -load $url -method DELETE -token amend | Out-Null
+    }
+}

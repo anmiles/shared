@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-	Updates gitlab information for current repository
+	Updates gitservice (gitlab or github) information for current repository
 .PARAMETER scan
 	Scan for repositories and update all repositories info
 .PARAMETER get
@@ -8,39 +8,44 @@
 .PARAMETER repo
 	Full path to local repository. If empty - perform action for all repositories
 .PARAMETER load
-	Perform request to gitlab API
+	Perform request to gitservice API. Works only with a service specified as $env:GIT_SERVICE
+.PARAMETER token
+	Type of token to use for requests
 .PARAMETER exec
-	Execute batch callback using current context
+	Execute batch callback using current context. Works only with a service specified as $env:GIT_SERVICE
 .PARAMETER method
-	Method to perform GET request to gitlab API (default - GET)
+	Method to perform GET request to gitservice API (default - GET)
 .PARAMETER data
 	Data to send with request
 .PARAMETER private
 	Whether to scan private repositories only. If false - scan repositories with membership only. If not specified - scan both.
 .EXAMPLE
-	gitlab -scan all
+	gitservice -scan all
 	# scan all repositories
 .EXAMPLE
-	gitlab -scan D:\src\scripts
+	gitservice -scan D:\src\scripts
 	# scan repository scripts
 .EXAMPLE
-	gitlab -get D:\src\scripts
+	gitservice -get D:\src\scripts
 	# get information about repository scripts
 .EXAMPLE
-	gitlab -scan -get D:\src\scripts
+	gitservice -scan -get D:\src\scripts
 	# scan repository scripts and get information about it
 .EXAMPLE
-	gitlab -scan -get all
+	gitservice -scan -get all
 	# scan all repositories and get information about them
 .EXAMPLE
-	gitlab -load https://gitlab.com/api/something
+	gitservice -load https://gitlab.com/api/something
 	# perform get request to https://gitlab.com/api/something
+	# works only if $env:GIT_SERVICE = "gitlab"
 .EXAMPLE
-	gitlab -load https://gitlab.com/api/change_something -method PUT -data "key=value"
-	# perform put request to https://gitlab.com/api/change_something with setting key to value
+	gitservice -load https://api.github.com/change_something -method PUT -data @{key = "value"}
+	# perform put request to https://api.github.com/change_something with setting key to value
+	# works only if $env:GIT_SERVICE = "github"
 .EXAMPLE
-	gitlab -exec { Load-GitlabData https://gitlab.com/api/something; Load-GitlabData https://gitlab.com/api/something2;  }
+	gitservice -exec { Load-GitService https://gitlab.com/api/something; Load-GitService https://gitlab.com/api/something2;  }
 	# perform 2 get requests using 1 token
+	# works only if $env:GIT_SERVICE = "gitlab"
 #>
 
 Param (
@@ -48,6 +53,7 @@ Param (
 	[switch]$get,
 	[string]$repo,
 	[string]$load,
+	[string]$token = "repos",
 	[ScriptBlock]$exec,
 	[string]$method = "GET",
 	[Hashtable]$data = @{},
@@ -55,6 +61,8 @@ Param (
 )
 
 $default_remote_name = "origin"
+$service = gitselect
+$user = [Environment]::GetEnvironmentVariable("$($service)_USER")
 
 $json = $null
 if (Test-Path $env:ENV_REPOSITORIES_FILE) {
@@ -72,12 +80,31 @@ if ($scan -or $get) {
 if ($scan -or $load -or $exec) {
 	[System.Net.ServicePointManager]::SecurityProtocol = 'Tls12'
 	Write-Host "Getting access token..."
-	vars -op $env:OP_USER -aws $env:AWS_PROFILE -names "gitlab_access_token_amend_$($env:WORKSPACE_NAME)" -silent
-	$headers = @{"PRIVATE-TOKEN" = (Get-Variable -Name "gitlab_access_token_amend_$($env:WORKSPACE_NAME)" -Value) }
+	$token_variable = "$($service)_token_$($token)_$($user)"
+	vars -op $env:OP_USER -aws $env:AWS_PROFILE -names $token_variable -silent
+	$token_value = Get-Variable -Name $token_variable -Value
+
+	$headers = gitselect -github { @{
+		"Accept" = "application/vnd.github+json"
+		"Authorization" = "Bearer $token_value"
+		"X-GitHub-Api-Version" = "2022-11-28"
+	} } -gitlab { @{
+		"PRIVATE-TOKEN" = $token_value
+	} }
 }
 
-Function Load-GitlabData($url, $method = "GET") {
-	if ($data.Keys.Length) { $body = $data | ConvertTo-Json -Compress }
+Function Load-GitService($url, $method = "GET", $data = @{}) {
+	# Write-Host "url = $url"
+	# Write-Host "data = $($data | ConvertTo-Json)"
+
+	if ($data.Keys.Length) {
+		$body = $data | ConvertTo-Json -Compress
+	} else {
+		$body = ""
+	}
+
+	# Write-Host "Invoke-WebRequest -Method $method -Body $body $url -UseBasicParsing"
+
 	return (Invoke-WebRequest -Headers $headers -Method $method -Body $body -ContentType "application/json" $url -UseBasicParsing).Content | ConvertFrom-Json
 }
 
@@ -121,35 +148,49 @@ if ($scan) {
 
 			$repositories_all[$id] = @{
 				id = $id
-				ssh_url_to_repo = $id
+				url = $id
+				public = $false
 				default_branch = $default_branch
 			}
 		}
 	}
 
-	Write-Host "Scanning gitlab repositories..."
+	Write-Host "Scanning remote repositories..."
 
 	if ($repo -eq "all") {
 		$shared_repositories | % {
-			$repository = Load-GitlabData "https://gitlab.com/api/v4/projects/$_"
+			$repository = gitselect -github {
+				Load-GitService "https://api.github.com/repos/$user/$_"
+			} -gitlab {
+				Load-GitService "https://gitlab.com/api/v4/projects/$_"
+			}
+
 			$repositories_all[$repository.id] = $repository
 		}
 	}
 
 	$options = @()
-	if ($private -ne $true) { $options += "membership=true" }
-	if ($private -ne $false) { $options += "visibility=private" }
+
+	if ($private -ne $true) { $options += (gitselect -github {"member" } -gitlab { "membership=true" }) }
+	if ($private -ne $false) { $options += (gitselect -github { "private" } -gitlab { "visibility=private" }) }
 
 	$options | % {
 		$page = 1
-		$search_url = "https://gitlab.com/api/v4/projects?$_&per_page=100"
 
 		do {
-			$repositories = Load-GitlabData "$search_url&page=$page"
+			$repositories = gitselect -github {
+				Load-GitService "https://api.github.com/user/repos" -data @{ per_page = 100; page = $page; type = $_ }
+			} -gitlab {
+				Load-GitService "https://gitlab.com/api/v4/projects?$_&per_page=100&page=$page"
+			}
 
 			$repositories | % {
-				if ($shared_repositories.Contains($_.id)) { return }
-				$repositories_all[$_.id] = $_
+				$repository = $_
+				$identifier = gitselect -github { $repository.name } -gitlab { $repository.id }
+				if ($shared_repositories.Contains($identifier)) { return }
+
+				$repository.url = gitselect -github { $repository.ssh_url } -gitlab { $repository.ssh_url_to_repo }
+				$repositories_all[$repository.id] = $repository
 			}
 
 			$page ++
@@ -177,7 +218,7 @@ if ($scan) {
 		$existing = $json | ? { $_.local -eq $this_local }
 		$existing | % { $json.Remove($_) }
 
-		$repositories_match = $repositories_all.Values | ? { $_.ssh_url_to_repo -eq $this_remote }
+		$repositories_match = $repositories_all.Values | ? { $_.url -eq $this_remote }
 
 		if ($repositories_match) {
 			$repositories_match | % {
@@ -186,6 +227,7 @@ if ($scan) {
 					name = $this_name
 					local = $this_local
 					remote = $this_remote
+					public = ($_.visibility -eq "public")
 					default_branch = $_.default_branch
 				}) | Out-Null
 			}
@@ -206,7 +248,7 @@ if ($get) {
 }
 
 if ($load) {
-	Load-GitlabData -url $load -method $method
+	Load-GitService -url $load -method $method -data $data
 }
 
 if ($exec) {
