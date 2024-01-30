@@ -98,9 +98,16 @@ Function Load-GitService($url, $method = "GET", $data = @{}) {
 	# Write-Host "data = $($data | ConvertTo-Json)"
 
 	if ($data.Keys.Length) {
-		$body = $data | ConvertTo-Json -Compress
+		if ($method -eq "GET") {
+			$data.Keys | % {
+				$symbol = if ($url.Contains("?")) { "&" } else { "?" }
+				$url += "$($symbol)$($_)=$($data[$_])"
+			}
+		} else {
+			$body = $data | ConvertTo-Json -Compress
+		}
 	} else {
-		$body = ""
+		$body = $null
 	}
 
 	# Write-Host "Invoke-WebRequest -Method $method -Body $body $url -UseBasicParsing"
@@ -165,21 +172,24 @@ if ($scan) {
 				Load-GitService "https://gitlab.com/api/v4/projects/$_"
 			}
 
+			$repository.url = gitselect -github { $repository.ssh_url } -gitlab { $repository.ssh_url_to_repo }
 			$repositories_all[$repository.id] = $repository
 		}
 	}
 
-	$options = @()
-
-	if ($private -ne $true) { $options += (gitselect -github {"member" } -gitlab { "membership=true" }) }
-	if ($private -ne $false) { $options += (gitselect -github { "private" } -gitlab { "visibility=private" }) }
+	$options = gitselect -github { "" } -gitlab {
+		$options = @()
+		if ($private -ne $true) { $options += "membership=true" }
+		if ($private -ne $false) { $options += "visibility=private" }
+		return $options
+	}
 
 	$options | % {
 		$page = 1
 
 		do {
 			$repositories = gitselect -github {
-				Load-GitService "https://api.github.com/user/repos" -data @{ per_page = 100; page = $page; type = $_ }
+				Load-GitService "https://api.github.com/user/repos" -data @{ per_page = 100; page = $page }
 			} -gitlab {
 				Load-GitService "https://gitlab.com/api/v4/projects?$_&per_page=100&page=$page"
 			}
