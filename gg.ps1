@@ -5,6 +5,8 @@
     Pattern to search the file
 .PARAMETER text_pattern
     Pattern to search the text in the file
+.PARAMETER E
+    Whether to perform fully-functional regex search with grep
 .EXAMPLE
     gg '\.ts$' import
     # search all imports in all *.ts files in current repository
@@ -12,7 +14,8 @@
 
 Param (
     [string]$file_pattern,
-    [string]$text_pattern
+    [string]$text_pattern,
+    [switch]$E
 )
 
 git ls-files | grep $file_pattern | % {
@@ -23,7 +26,11 @@ git ls-files | grep $file_pattern | % {
     }
 
     if ($text_pattern) {
-        grep $text_pattern ($file.Replace("/", "\\")) | % { "$file`t$_"}
+        $arguments = @()
+        if ($E) { $arguments += "-E" }
+        $arguments += $text_pattern
+        $arguments += $file.Replace("/", "\\")
+        (& grep $arguments) | % { "$file`t$_"}
     } else {
         "$file"
     }

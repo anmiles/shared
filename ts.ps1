@@ -71,6 +71,9 @@ function GetYearString(){
 $fields = @(
 	@{Name = "NAME"; Input = $true}
 	@{Name = "DESCRIPTION"; Input = $true}
+	@{Name = "KEYWORD1"; Input = $true}
+	@{Name = "KEYWORD2"; Input = $true}
+	@{Name = "KEYWORD3"; Input = $true}
 	@{Name = "DATE"; Callback = $function:GetDateString}
 	@{Name = "YEAR"; Callback = $function:GetYearString}
 )
