@@ -111,7 +111,6 @@ Function Load-GitService($url, $method = "GET", $data = @{}) {
 	}
 
 	# Write-Host "Invoke-WebRequest -Method $method -Body $body $url -UseBasicParsing"
-
 	return (Invoke-WebRequest -Headers $headers -Method $method -Body $body -ContentType "application/json" $url -UseBasicParsing).Content | ConvertFrom-Json
 }
 
@@ -162,20 +161,24 @@ if ($scan) {
 		}
 	}
 
-	Write-Host "Scanning remote repositories..."
+	if ($shared_repositories) {
 
-	if ($repo -eq "all") {
-		$shared_repositories | % {
-			$repository = gitselect -github {
-				Load-GitService "https://api.github.com/repos/$user/$_"
-			} -gitlab {
-				Load-GitService "https://gitlab.com/api/v4/projects/$_"
+	Write-Host "Scanning shared repositories..."
+		if ($repo -eq "all") {
+			$shared_repositories | % {
+				$repository = gitselect -github {
+					Load-GitService "https://api.github.com/repos/$user/$_"
+				} -gitlab {
+					Load-GitService "https://gitlab.com/api/v4/projects/$_"
+				}
+
+				$repository.url = gitselect -github { $repository.ssh_url } -gitlab { $repository.ssh_url_to_repo }
+				$repositories_all[$repository.id] = $repository
 			}
-
-			$repository.url = gitselect -github { $repository.ssh_url } -gitlab { $repository.ssh_url_to_repo }
-			$repositories_all[$repository.id] = $repository
 		}
 	}
+
+	Write-Host "Scanning remote repositories..."
 
 	$options = gitselect -github { "" } -gitlab {
 		$options = @()
@@ -246,7 +249,7 @@ if ($scan) {
 		}
 	}
 
-	$json = $json | Sort { !$shared_repositories.Contains($_.id) }, local
+	$json = $json | Sort { $item = $_; return !$shared_repositories.Contains((gitselect -github { $item.name } -gitlab { $item.id })) }, local
 	$content = $json | ConvertTo-Json
 	if ($content) { file $env:ENV_REPOSITORIES_FILE $content }
 	Write-Host "Done!"
