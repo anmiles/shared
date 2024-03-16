@@ -25,7 +25,7 @@
     npr lint
     # run `npm run lint:fix`
 .EXAMPLE
-	npr test -l library -ciwu
+	npr test -l src/lib/library -ciwu
 	# run `npm run test:watch:coverage` to execute tests in src/lib/__tests__/library.test.ts with covering src/lib/library.ts and updating snapshots in watch mode with debugger
 .EXAMPLE
     npr build
@@ -89,7 +89,7 @@ $actions.Keys | % {
 			$args += "--coverage"
 
 			if ($lib) {
-				$args += "--collectCoverageFrom='src/lib/$lib.ts'"
+				$args += "--collectCoverageFrom='$lib.ts'"
 			}
 		}
 
@@ -102,7 +102,7 @@ $actions.Keys | % {
 			$lib -match '^((.+)/)?([^\/]+)$' | Out-Null
 			$filename = $matches[3]
 			$directory = $matches[2]
-			$args += (@("src/lib", $matches[2], "__tests__", "$filename.test.ts") | ? { $_ }) -join "/"
+			$args += (@($matches[2], "__tests__", "$filename.test.ts") | ? { $_ }) -join "/"
 		}
 
 		if ($args.Length) {
