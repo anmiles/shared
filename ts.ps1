@@ -17,14 +17,6 @@ Param (
 	[Parameter(Mandatory = $true)][string]$arg
 )
 
-$location = Get-Location
-
-repo ts -quiet -action {
-	if ($repo -eq $location) {
-		throw "Cannot init ts app itself"
-	}
-}
-
 function AddToFile($file, $line) {
 	if ((Test-Path $file)) {
 		$contents = file $file
@@ -69,24 +61,11 @@ function GetYearString(){
 }
 
 $fields = @(
-	@{Name = "NAME"; Input = $true}
-	@{Name = "DESCRIPTION"; Input = $true}
-	@{Name = "KEYWORD1"; Input = $true}
-	@{Name = "KEYWORD2"; Input = $true}
-	@{Name = "KEYWORD3"; Input = $true}
-	@{Name = "DATE"; Callback = $function:GetDateString}
-	@{Name = "YEAR"; Callback = $function:GetYearString}
+	@{Name = "name"; Input = $true}
+	@{Name = "description"; Input = $true}
+	@{Name = "date"; Callback = $function:GetDateString}
+	@{Name = "year"; Callback = $function:GetYearString}
 )
-
-Function CreateFSEntry($name, $content, [switch]$Directory) {
-	Write-Host "Creating $name ... " -NoNewLine
-	if ($Directory) {
-		mkdir $name -Force | Out-Null
-	} else {
-		file $name $content
-	}
-	Write-Host "done!"
-}
 
 switch ($action) {
 	"init" {
@@ -103,32 +82,35 @@ switch ($action) {
 			}
 			if ($_.Callback) {
 				$_.Value = $_.Callback.Invoke($fields)[0]
-				Write-Host "value for $($_.Name) is $($_.Value)"
+				# Write-Host "value for $($_.Name) is $($_.Value)"
 			}
 		}
 
-		repo ts -quiet -action {
-			$items = @()
-			$items += Get-ChildItem -Recurse | ? { $fullName = $_.FullName; return ($types | ? {$fullName -match "\\.$_"}).Length -eq 0 }
-			$items += Get-ChildItem ".$arg" -Recurse
+		$location = Get-Location
+		$template = "ts-template-$arg"
 
-			$items | % {
-				$dst = $_.FullName.Replace($repo, $location).Replace("\.$arg", "")
-
-				if ($_.PSIsContainer) {
-					CreateFSEntry $dst -Directory
-				} else {
-					$content = file $_.FullName
-					$fields | % {
-						$content = $content.Replace("{$($_.Name)}", $_.Value)
-					}
-					CreateFSEntry $dst $content
-				}
+		repo $template -quiet -action {
+			if ($repo -eq $location) {
+				throw "Cannot init $template itself"
 			}
 
-			$newSrc = Join-Path $location "src"
-			$newReadme = Join-Path $location "README.md"
-			CreateFSEntry $newSrc -Directory
+			gg | % {
+				$src = Join-Path $template $_
+				$dst = Join-Path $location $_
+				$content = file $src
+
+				$fields | ? { $_.Name -ne "name" } | % {
+					$content = $content.Replace("$template-$($_.Name)", $_.Value)
+				}
+
+				$fields | ? { $_.Name -eq "name" } | % {
+					$content = $content.Replace("$template", $_.Value)
+				}
+
+				Write-Host "Creating $name ... " -NoNewLine
+				file $name $content
+				Write-Host "done!"
+			}
 		}
 	}
 
@@ -143,24 +125,24 @@ switch ($action) {
 		$moduleContent = file $moduleFile
 
 		$exportParts = $moduleContent -split "export default \{(.*?)\}"
+
 		if ($exportParts.Length -eq 1) {
 			throw "Please profide ``export default`` in file $moduleFile that will export all functions that needs to be tested"
 		}
 
 		$exports = $exportParts[1] -split '(\w+)' | ? { $_ -match '^\w+$' }
-
-		$functionMatches = [Regex]::Matches($moduleContent, "^\s*(async )?function ([^(<]+)(<.*>)?\((.*?)\)")
+		$functionMatches = [Regex]::Matches($moduleContent, "(^|\n)\s*(async )?function ([^(<]+)(<.*>)?\((.*?)\)")
 		$allArguments = @()
 
 		$functions = $functionMatches | % {
-			$argsMatch = [Regex]::Match($_.Groups[4].Value, '^(^\s*\{\s*)?(.*?)\s*(\}|$)')
+			$argsMatch = [Regex]::Match($_.Groups[5].Value, '^(^\s*\{\s*)?(.*?)\s*(\}|$)')
 			$isBrackets = $argsMatch.Groups[1].Length -gt 0
-			$arguments = ((StripGeneric $argsMatch.Groups[2]) -split ",\s") | % {$_.Split(':')[0] -replace '\?$', ''}
+			$arguments = ((StripGeneric $argsMatch.Groups[3]) -split ",\s") | % {$_.Split(':')[0] -replace '\?$', ''}
 			if ($arguments) { $allArguments += $arguments }
 
 			return @{
-				Name = $_.Groups[2].Value;
-				Async = $_.Groups[1].Value -ne "";
+				Name = $_.Groups[3].Value;
+				Async = $_.Groups[2].Value -ne "";
 				IsBrackets = $isBrackets;
 				Arguments = $arguments;
 			}
@@ -176,10 +158,12 @@ switch ($action) {
 
 		$output = @()
 		$output += "import $moduleName from '../$moduleName';"
+		$output += ""
 
 		if ($functions.Length -gt 1) {
 			$original = "original"
-			$output += "const $original = jest.requireActual('../$moduleName').default as typeof $moduleName;";
+			$output += "// eslint-disable-next-line @typescript-eslint/no-unsafe-member-access";
+			$output += "const $original = jest.requireActual<{ default : typeof $moduleName }>('../$moduleName').default;";
 			$output += "jest.mock<typeof $moduleName>('../$moduleName', () => ({";
 			$functions | % {
 				$output += "`t$($_.Name)$(" " * ($functionMaxLength - $_.Name.Length)) : jest.fn().mockImplementation(() => {}),";
@@ -238,8 +222,7 @@ switch ($action) {
 
 	"ignore" {
 		$ignore = $arg -replace '^\/?(.*?)\/?$', '$1'
-		AddToJSON -file jest.config.js -key "collectCoverageFrom" -line "'!<rootDir>/$ignore/**',"
-		AddToJSON -file .eslintrc.js -key "ignorePatterns" -line "'$ignore/',"
+		AddToFile -file .eslintignore $ignore
 		AddToFile -file .gitignore $ignore
 		AddToFile -file .npmignore $ignore
 	}
