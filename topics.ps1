@@ -40,6 +40,7 @@ $technologies = @(
 	@{ name = "less";			condition = { $files | grep '\.less$' } }
 	@{ name = "nestjs";			condition = { ($packages | ? { $_.StartsWith("@nestjs/")}) } }
 	@{ name = "next";			condition = { $packages.Contains("next") } }
+	@{ name = "vite";			condition = { $packages.Contains("vite") } }
 	@{ name = "mongodb";		condition = { $packages.Contains("mongodb") } }
 	@{ name = "graphql";		condition = { $packages.Contains("graphql") } }
 	@{ name = "postgres";		condition = { $packages.Contains("postgres") -or $packages.Contains("pg") } }
@@ -64,12 +65,13 @@ $topics = @{}
 out "{Yellow:Scanning repositories...}"
 
 repo -name $name -quiet {
+	out "{Green:$name}"
+
 	if (!(@("git@github.com:$env:GITHUB_USER/", "https://github.com/$env:GITHUB_USER/") | ? { $repository.remote.StartsWith($_) })) {
-		out "{DarkYellow:$name}`n[skip]"
+		out "    {DarkYellow:[skip local]}"
 		return
 	}
 
-	out "{Green:$name}"
 	$topics[$name] = @()
 	$packages = (packages).name
 	if (!$packages) { $packages = @() }
@@ -94,8 +96,8 @@ repo -name $name -quiet {
 		if ($_.keywords) { $_.keywords | ? { $_ -notmatch '^\{.*\}$' } | % { $topics[$name] += $_ } }
 	}
 
-	$topics[$name] = @($topics[$name] | Unique)
-	out ($topics[$name] -join " ")
+	$topics[$name] = $topics[$name] | Unique | Sort
+	out "    $($topics[$name] -join " ")"
 }
 
 out "{Yellow:Updating topics...}"
@@ -104,6 +106,20 @@ gitservice -token admin -exec {
 	$topics.Keys | Sort | % {
 		$name = $_
 		out "{Green:$name}"
-		[void](Load-GitService "https://api.github.com/repos/$env:GITHUB_USER/$name/topics" -method PUT -data @{ names = $topics[$name] } | ConvertTo-Json)
+
+		$url = "https://api.github.com/repos/$env:GITHUB_USER/$name/topics"
+		$existing_topics = (Load-GitService $url -method GET).names
+		$actual_topics = $topics[$name]
+
+		$added_topics = $actual_topics | ? { !$existing_topics.Contains($_) }
+		$deleted_topics = $existing_topics | ? { !$actual_topics.Contains($_) }
+
+		if ($added_topics -or $deleted_topis) {
+			$added_topics | % { out "    {Yellow:+ $_}" }
+			$deleted_topics | % { out "    {DarkRed:- $_}" }
+			[void](Load-GitService $url -method PUT -data @{ names = $topics[$name] } | ConvertTo-Json)
+		} else {
+			out "    {DarkYellow:[up-to-date]}"
+		}
 	}
 }
