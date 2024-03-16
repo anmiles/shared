@@ -147,12 +147,22 @@ $repositories | % {
     }
 }
 
-if (!$found) {
+Function GetCandidate($name) {
+    $startsWith = @($repositories | ? { $_.name.StartsWith($name) })
+    if ($startsWith.Count -eq 1) {
+        return $startsWith[0]
+    }
+
     Import-Module $env:MODULES_ROOT\levenshtein.ps1 -Force
     $closest = GetClosest $name $repositories "name"
     if ($closest.GetType().BaseType -eq [System.Array]) { $closest = $closest[0] }
+    return $closest
+}
 
-    if (confirm "Did you mean {Green:$($closest.name)}") {
-        InvokeRepo $closest
+if (!$found) {
+    $candidate = GetCandidate -name $name
+
+    if (confirm "Did you mean {Green:$($candidate.name)}") {
+        InvokeRepo $candidate
     }
 }
