@@ -5,10 +5,11 @@
     Add all changes to stage, commit if needed (asks commit message) and push repository in current branch.
     Can skip commits particular repositories by specifiying "skip" or "-" as commit message
     Can revert all changese by specifying "discard" or "!" as commit message
-    Can show diff by specifying "diff" or "?" as commit message
-    Can show difftool by specifying "difftool" or "??" as commit message
+    Can show diff by specifying "diff" or "=" as commit message
+    Can show difftool by specifying "difftool" or "==" as commit message
     Can accept different messages for each file by specifying "split" or "+" as commit message
     Can open editor by specifying "edit" or "~" as commit message
+    Can show help for all actions above by specifying "help" or "?" as commit message
     Apply script only for specified repository name or for current working directory if nothing specified, or apply for all repositories if "all" specified
 .PARAMETER name
     Apply script only for specified repository name or for current working directory if nothing specified, or apply for all repositories if "all" specified
@@ -93,23 +94,11 @@ function AddAndCommit($message, $filenames) {
     }
 }
 
+Function GetPrevMessages([int]$count) {
+    git log --pretty=format:%B | ? { $_ -and !$_.StartsWith("Merge branch") -and $_ -notmatch '^\d+\.\d+\.\d+$' } | Select -First $count
+}
+
 repo -name $name -quiet:$quiet -action {
-    function GetPrevMessage {
-        $offset = 0
-        $prev_message = ""
-
-        while (!$prev_message -or $prev_message.StartsWith("Merge branch") -or $prev_message -match '^\d+\.\d+\.\d+$') {
-            $prev_message = $(git log --first-parent $branch --skip $offset -n 1 --pretty=format:%B) -split "`n" | Select -First 1
-            $offset = $offset + 1
-            if ($prev_message.StartsWith("Merge branch") -and $prev_message.Contains(" into '$default_branch'")) {
-                $prev_message = ""
-                break
-            }
-        }
-
-        return $prev_message
-    }
-
     $commands = @(
         "git log --format=format:%H origin/$branch..$branch",
         "git status --short --untracked-files --renames",
@@ -130,59 +119,58 @@ repo -name $name -quiet:$quiet -action {
     }
 
     if ($empty -or $uncommitted -gt 0) {
-        Write-Host "-------------------------------------------------------------------" -ForegroundColor Yellow
+        Write-Host "--------------------------------------------------------------------------" -ForegroundColor Yellow
         git status --short --untracked-files --renames
-        Write-Host "-------------------------------------------------------------------" -ForegroundColor Yellow
+        Write-Host "--------------------------------------------------------------------------" -ForegroundColor Yellow
 
         $skip = $false
 
         if ($unmerged -eq 0) {
-            $prev_message = GetPrevMessage
+            $prev_messages = GetPrevMessages 10
             $ready = $false
 
-            while (!$ready) {
-                if (!$message) { $message = ask -value $prev_message -old "Prev commit message" -new "Next commit message" -append }
-
-                if ($message -eq "diff" -or $message -eq "?") {
-                    Write-Host "Diff will be paginated. Press ENTER to show more and 'q' in the end" -ForegroundColor Yellow
-                    Write-Host "-------------------------------------------------------------------" -ForegroundColor Yellow
-                    git diff HEAD
-                    Write-Host "-------------------------------------------------------------------" -ForegroundColor Yellow
-                    $message = $null
-                    continue
-                }
-
-                if ($message -eq "difftool" -or $message -eq "??") {
+            $actions = @(
+                [PSCustomObject]@{ message = "help"; alias = "?"; description = "Show actions help"; action = {
+                    $actions | Format-Table -Property @( "message", "alias", "description" )
+                } }
+                [PSCustomObject]@{ message = "diff"; alias = "="; description = "Show diff"; action = {
+                    Write-Host "Diff will be paged. Press ENTER to show more or 'q' to stop or 'h' to help" -ForegroundColor Yellow
+                    Write-Host "==========================================================================" -ForegroundColor Yellow
+                    git diff --color=always HEAD
+                    git ls-files --others --exclude-standard | % { git diff --no-index --color=always /dev/null $_ }
+                    Write-Host "==========================================================================" -ForegroundColor Yellow
+                } }
+                [PSCustomObject]@{ message = "diffs"; alias = "=="; description = "Show diff without pager"; action = {
+                    Write-Host "==========================================================================" -ForegroundColor Yellow
+                    git --no-pager diff --color=always HEAD
+                    git ls-files --others --exclude-standard | % { git --no-pager diff --no-index --color=always /dev/null $_ }
+                    Write-Host "==========================================================================" -ForegroundColor Yellow
+                } }
+                [PSCustomObject]@{ message = "difftool"; alias = "$"; description = "Show diff using difftool"; action = {
                     git difftool -d HEAD
-                    $message = $null
-                    continue
-                }
-
-                if ($message -eq "skip" -or $message -eq "-") {
+                } }
+                [PSCustomObject]@{ message = "skip"; alias = "-"; description = "Skip this repository"; action = {
                     $ready = $true
                     $skip = $true
-                    $message = $null
-                    continue
-                }
-
-                if ($message -eq "discard" -or $message -eq "!") {
+                } }
+                [PSCustomObject]@{ message = "discard"; alias = "!"; description = "Discard all changes in repository"; action = {
                     $ready = $true
                     $skip = $true
-                    $message = $null
                     discard
-                    continue
-                }
-
-                if ($message -eq "edit" -or $message -eq "~") {
-                    $message = $null
+                } }
+                [PSCustomObject]@{ message = "edit"; alias = "~"; description = "Open repository in the editor"; action = {
                     edit
-                    continue
-                }
-
-                if ($message -eq "split" -or $message -eq "+") {
+                } }
+                [PSCustomObject]@{ message = "select"; alias = "#"; description = "Select from previous commit messages"; action = {
+                    $i = 0
+                    $prev_messages | % {
+                        out "{Green:$i} $_"
+                        $i++
+                    }
+                } }
+                [PSCustomObject]@{ message = "split"; alias = "+"; description = "Split changes between commits"; action = {
                     $ready = $true
                     $skip = $true
-                    $message = $null
                     $splitfile = Join-Path $env:TEMP "COMMIT_SPLIT"
                     $lines = git status --short --untracked-files --renames
                     $maxLength = ($lines | % { $_.Length } | Measure-Object -Maximum).Maximum
@@ -210,6 +198,23 @@ repo -name $name -quiet:$quiet -action {
                     }
 
                     Remove-Item -Force $splitfile
+                } }
+            )
+
+            while (!$ready) {
+                if (!$message) { $message = ask -value $prev_message -old "Prev commit message" -new "Next commit message" -append }
+
+                $action = $actions | ? { $_.message -eq $message -or $_.alias -eq $message}
+                if ($action) {
+                    out "{DarkYellow:$($action.description)}"
+                    $action.action.Invoke()
+                    $message = $null
+                    continue
+                }
+
+                if ($message -match '\d') {
+                    $message = $prev_messages[$message]
+                    $ready = $true
                     continue
                 }
 
@@ -224,7 +229,6 @@ repo -name $name -quiet:$quiet -action {
                     $message = $null
                     continue
                 }
-
                 $ready = $true
             }
         }
@@ -265,7 +269,7 @@ repo -name $name -quiet:$quiet -action {
             $arguments += "-o merge_request.create"
 
             if (!$message) {
-                $prev_message = GetPrevMessage
+                $prev_message = GetPrevMessages 1
                 $message = ask -value $prev_message -old "Prev commit message" -new "Next commit message" -append
             }
 
