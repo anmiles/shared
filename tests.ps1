@@ -66,10 +66,12 @@ $results = @{
 
 $data = Import-Module $file -Force | % {
     $test = $_
+    if ($test.Command) { $test.Input = $test.Command }
     $test.Input = Stringify(ShowInput($test.Input))
     if (!$test.Value) { $test.Value = $test.Input }
     $test.Value = Stringify($test.Value)
-    $test.Received = Stringify(ShowReceived(Test($test.Value)))
+    $test.Received = if ($test.Command) { iex($test.Command) } else { Test($test.Value) }
+    $test.Received = Stringify(ShowReceived($test.Received))
     $test.Expected = Stringify(ShowExpected($test.Expected))
 
     [PsCustomObject]@{
@@ -85,7 +87,7 @@ $data = Import-Module $file -Force | % {
 $data | Format-Table -Property @(
     @{Label = "Result"; Expression = {$_.Color + $_.Result}},
     @{Label = "Input"; Expression = {$_.Input}},
-    @{Label = "Received"; Expression = {$_.Received}},
+    # @{Label = "Received"; Expression = {$_.Received}},
     @{Label = "Expected"; Expression = {$_.Expected}},
     @{Label = "Comment"; Expression = {$_.Comment}}
 )
