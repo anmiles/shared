@@ -22,7 +22,7 @@ $iis_config.root.sections.section | % {
         $section.templates.template | % {
             $template = $_
             $urls = @($_.hostname, $_.alias)
-            $hosts_section = $template.hosts.ToUpper()
+            $hosts_section = if ($template.hosts) { $template.hosts.ToUpper() } else { $null }
 
             if (!$_.hostname) {
                 $urls += $_.name
