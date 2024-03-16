@@ -34,7 +34,7 @@ $answers = switch($extended) {
 
 Function Ask-Question($question) {
     out $question -NoNewline -ForegroundColor Yellow
-    Write-Host " ($options)? " -NoNewline -ForegroundColor Yellow
+    out " ($options)? " -NoNewline -ForegroundColor Yellow
 
     if ($result -is [boolean]) {
         Write-Host ""

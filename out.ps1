@@ -21,20 +21,12 @@ Param (
 $length = 0
 
 if ($text -and ($text.Trim() -or $NoNewline)) {
-    $text -split "(\{[A-Za-z]+:[^\}]*\})" | % {
-        if ($_ -match "\{([A-Za-z]+):([^\}]*)\}") {
-            $length += $matches[2].Length
-            Write-Host $matches[2] -NoNewLine -ForegroundColor $matches[1]
-        } else {
-            $length += $_.Length
-            Write-Host $_ -NoNewLine -ForegroundColor $ForegroundColor
-        }
-    }
+    Write-Host (fmt $text $ForegroundColor) -NoNewline
 
     if ($underline) {
         Write-Host ""
         Write-Host ""
-        Write-Host ("-" * $length) -ForegroundColor $ForegroundColor -NoNewline:$NoNewline
+        Write-Host (fmt ("-" * $length) $ForegroundColor)
     }
 }
 

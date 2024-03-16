@@ -79,6 +79,57 @@ function global:wsh($command, $arguments){
     sh "$command $arguments"
 }
 
+function global:fmt {
+    Param (
+        [string]$text,
+        [ConsoleColor]$ForegroundColor = "Gray"
+    )
+
+    $colors_map = @{
+        0 = 30
+        1 = 34
+        2 = 32
+        3 = 36
+        4 = 31
+        5 = 35
+        6 = 33
+        7 = 37
+        8 = 90
+        9 = 94
+        10 = 92
+        11 = 96
+        12 = 91
+        13 = 95
+        14 = 93
+        15 = 97
+    }
+
+    $result = @{ length = 0 }
+
+    Function Colorize($str, $color) {
+        if ($str.Length -eq 0) { return "" }
+
+        $result.length += $str.Length
+        $code = $colors_map[[int][ConsoleColor]$color]
+        return "$([char]27)[$($code)m$str$([char]27)[m"
+    }
+
+    $output = @()
+
+    if ($text) {
+        $parts = $text -split "\{([A-Za-z]+):(.*?(?![^``]\}))\}"
+
+        for ($i = 0; $i -lt $parts.Length - 1; $i += 3) {
+            $output += Colorize $parts[$i] $ForegroundColor
+            $output += Colorize $parts[$i + 2] $parts[$i + 1]
+        }
+
+        $output += Colorize $parts[$parts.Length - 1] $ForegroundColor
+    }
+
+    return ($output -join "")
+}
+
 $paths = [System.Collections.ArrayList]($env:PATH -split ";")
 $sourcePaths = @()
 
