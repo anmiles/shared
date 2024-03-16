@@ -123,11 +123,14 @@ repo -name $name -quiet:$quiet -action {
         git status --short --untracked-files --renames
         Write-Host "--------------------------------------------------------------------------" -ForegroundColor Yellow
 
-        $skip = $false
+        $flags = @{
+            ready = $false
+            skip = $false
+        }
 
         if ($unmerged -eq 0) {
             $prev_messages = GetPrevMessages 10
-            $ready = $false
+            $flags.ready = $false
 
             $actions = @(
                 [PSCustomObject]@{ message = "help"; alias = "?"; description = "Show actions help"; action = {
@@ -150,12 +153,12 @@ repo -name $name -quiet:$quiet -action {
                     git difftool -d HEAD
                 } }
                 [PSCustomObject]@{ message = "skip"; alias = "-"; description = "Skip this repository"; action = {
-                    $ready = $true
-                    $skip = $true
+                    $flags.ready = $true
+                    $flags.skip = $true
                 } }
                 [PSCustomObject]@{ message = "discard"; alias = "!"; description = "Discard all changes in repository"; action = {
-                    $ready = $true
-                    $skip = $true
+                    $flags.ready = $true
+                    $flags.skip = $true
                     discard
                 } }
                 [PSCustomObject]@{ message = "edit"; alias = "~"; description = "Open repository in the editor"; action = {
@@ -169,8 +172,8 @@ repo -name $name -quiet:$quiet -action {
                     }
                 } }
                 [PSCustomObject]@{ message = "split"; alias = "+"; description = "Split changes between commits"; action = {
-                    $ready = $true
-                    $skip = $true
+                    $flags.ready = $true
+                    $flags.skip = $true
                     $splitfile = Join-Path $env:TEMP "COMMIT_SPLIT"
                     $lines = git status --short --untracked-files --renames
                     $maxLength = ($lines | % { $_.Length } | Measure-Object -Maximum).Maximum
@@ -201,10 +204,11 @@ repo -name $name -quiet:$quiet -action {
                 } }
             )
 
-            while (!$ready) {
-                if (!$message) { $message = ask -value $prev_message -old "Prev commit message" -new "Next commit message" -append }
+            while (!$flags.ready) {
+                if (!$message) { $message = ask -value $prev_messages[0] -old "Prev commit message" -new "Next commit message" -append }
 
                 $action = $actions | ? { $_.message -eq $message -or $_.alias -eq $message}
+
                 if ($action) {
                     out "{DarkYellow:$($action.description)}"
                     $action.action.Invoke()
@@ -214,7 +218,7 @@ repo -name $name -quiet:$quiet -action {
 
                 if ($message -match '\d') {
                     $message = $prev_messages[$message]
-                    $ready = $true
+                    $flags.ready = $true
                     continue
                 }
 
@@ -229,11 +233,11 @@ repo -name $name -quiet:$quiet -action {
                     $message = $null
                     continue
                 }
-                $ready = $true
+                $flags.ready = $true
             }
         }
 
-        if (!$skip) {
+        if (!$flags.skip) {
             AddAndCommit $message .
             $unpushed += (git log --format=format:%H origin/$branch..$branch).Length
         }
