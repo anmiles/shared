@@ -73,7 +73,7 @@ repo -name $name -quiet {
 	$topics[$name] = @()
 	$packages = (packages).name
 	if (!$packages) { $packages = @() }
-	$files = git ls-files
+	$files = gg
 	$packageJSONs = $files | grep package.json | % { file $_ | ConvertFrom-JSON }
 	$frontend_libs_in_html = gg '\.html$' -E "/\($($frontend_libs_names -Join "|")\)\W"
 	$frontend_libs = $frontend_libs_names | ? {
