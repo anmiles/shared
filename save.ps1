@@ -216,9 +216,17 @@ repo -name $name -quiet:$quiet -action {
                     continue
                 }
 
-                if ($message -match '\d') {
-                    $message = $prev_messages[$message]
-                    $flags.ready = $true
+                if ($message -match '^\d+$') {
+                    $prev_message = $prev_messages[$message]
+
+                    if (!$prev_message) {
+                        Write-Host "Previous message #$message not found" -ForegroundColor Red
+                        $message = $null
+                    } else {
+                        $message = $prev_message
+                        $flags.ready = $true
+                    }
+
                     continue
                 }
 
@@ -233,6 +241,7 @@ repo -name $name -quiet:$quiet -action {
                     $message = $null
                     continue
                 }
+
                 $flags.ready = $true
             }
         }
