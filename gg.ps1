@@ -135,7 +135,7 @@ if ($text_pattern) {
                             $entry_split | % { $i = 0 } {
                                 if ($i++ % 2) {
                                     if ($value_str) {
-                                        $parts = $_ -split $value_str
+                                        $parts = $_ -split [Regex]::Escape($value_str)
                                         $output += fmt $parts[0] "Red"
                                         $output += fmt $value_str "DarkYellow"
                                         $output += fmt $parts[1] "Red"
