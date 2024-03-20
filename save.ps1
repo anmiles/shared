@@ -4,7 +4,7 @@
 .DESCRIPTION
     Add all changes to stage, commit if needed (asks commit message) and push repository in current branch.
     Can skip commits particular repositories by specifiying "skip" or "-" as commit message
-    Can revert all changese by specifying "discard" or "!" as commit message
+    Can revert all changes by specifying "discard" or "!" as commit message
     Can show diff by specifying "diff" or "=" as commit message
     Can show difftool by specifying "difftool" or "==" as commit message
     Can accept different messages for each file by specifying "split" or "+" as commit message
