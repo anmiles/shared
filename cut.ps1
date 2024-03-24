@@ -132,7 +132,7 @@ if ($concat) {
     $start_timespan = $null
     $length = $null
 
-    $cwd = (Get-Item .).FullName
+    $cwd = Split-Path $input_filename -Parent
     $list_filename = $input_filename.Replace($input.Name, "ffmpeg.txt")
     $input_content = ($inputs | % { "file $($_.FullName.Replace($cwd, '').Replace('\', '/') -replace '^\/', '')" }) -join "`n"
     Write-Host $input_content
