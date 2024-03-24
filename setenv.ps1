@@ -82,10 +82,11 @@ function global:wsh($command, $arguments){
 function global:fmt {
     Param (
         [string]$text,
-        [ConsoleColor]$ForegroundColor = "Gray"
+        [string]$ForegroundColor = $null,
+        [string]$BackgroundColor = $null
     )
 
-    $colors_map = @{
+    $ForegroundColors = @{
         0 = 30
         1 = 34
         2 = 32
@@ -104,14 +105,47 @@ function global:fmt {
         15 = 97
     }
 
+    $BackgroundColors = @{
+        0 = 40
+        1 = 44
+        2 = 42
+        3 = 46
+        4 = 41
+        5 = 45
+        6 = 43
+        7 = 47
+        8 = 100
+        9 = 104
+        10 = 102
+        11 = 106
+        12 = 101
+        13 = 105
+        14 = 103
+        15 = 107
+    }
+
     $result = @{ length = 0 }
 
-    Function Colorize($str, $color) {
+    Function Colorize($str, $ForegroundColor, $BackgroundColor) {
         if ($str.Length -eq 0) { return "" }
 
         $result.length += $str.Length
-        $code = $colors_map[[int][ConsoleColor]$color]
-        return "$([char]27)[$($code)m$str$([char]27)[m"
+
+        $f1 = $b1 = $c0 = ""
+
+        if ($ForegroundColor) {
+            $code = $ForegroundColors[[int][ConsoleColor]$ForegroundColor]
+            $f1 = "$([char]27)[$($code)m"
+            $c0 = "$([char]27)[m"
+        }
+
+        if ($BackgroundColor) {
+            $code = $BackgroundColors[[int][ConsoleColor]$BackgroundColor]
+            $b1 = "$([char]27)[$($code)m"
+            $c0 = "$([char]27)[m"
+        }
+
+        return "$b1$f1$str$c0"
     }
 
     $output = @()
@@ -120,11 +154,11 @@ function global:fmt {
         $parts = $text -split "\{([A-Za-z]+):(.*?(?![^``]\}))\}"
 
         for ($i = 0; $i -lt $parts.Length - 1; $i += 3) {
-            $output += Colorize $parts[$i] $ForegroundColor
-            $output += Colorize $parts[$i + 2] $parts[$i + 1]
+            $output += Colorize $parts[$i] $ForegroundColor $BackgroundColor
+            $output += Colorize $parts[$i + 2] $parts[$i + 1] $BackgroundColor
         }
 
-        $output += Colorize $parts[$parts.Length - 1] $ForegroundColor
+        $output += Colorize $parts[$parts.Length - 1] $ForegroundColor $BackgroundColor
     }
 
     return ($output -join "")
