@@ -256,7 +256,7 @@ if (!$silent) {
 }
 
 Start-Process cmd -ArgumentList "/c ffmpeg $params" -NoNewWindow -Wait
-if ($concat) { Remove-Item $input_filename }
+# if ($concat) { Remove-Item $input_filename }
 
 if (!$silent) {
     Write-Host $output_filename -ForegroundColor Green
