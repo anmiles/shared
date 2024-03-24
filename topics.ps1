@@ -13,11 +13,7 @@ $frontend_libs_names = @("react", "vue", "knockout", "jquery", "leaflet")
 
 $technologies = @(
 	@{ name = "nodejs"; 		condition = { $packageJSONs } }
-	@{ name = "javascript";		condition = {
-		if ($packageJSONs -and (!$packages.Contains("typescript") -or ($packageJSONs | ? { $_.scripts -and $_.scripts.build }))) { return $true }
-		if ($files | grep '\.js$') { return $true }
-		return $false
-	} }
+	@{ name = "javascript";		condition = { $files | grep '\.js$' } }
 	@{ name = "typescript";		condition = { $packages.Contains("typescript") } }
 	@{ name = "c-sharp";		condition = { $files | grep '\.cs$' } }
 	@{ name = "aspnet";			condition = { $files | grep -i 'web\.config$' } }
@@ -28,7 +24,7 @@ $technologies = @(
 	@{ name = "apk";			condition = { $files | grep 'AndroidManifest\.xml$' } }
 	@{ name = "hcl";			condition = { $files | grep '\.tf$' } }
 	@{ name = "library";		condition = { (Get-Item .).Parent.Name -eq "lib" } }
-	@{ name = "website";		condition = { ($files | grep -i 'web\.config$') -or ($name -eq "anmiles.net") } }
+	@{ name = "website";		condition = { ($files | grep -i 'web\.config$') -or ($files | grep -i '\.github/workflows/static.yml') } }
 	@{ name = "backend";		condition = { ($packages | ? { $_.StartsWith("@nestjs/")}) -or $packages.Contains("express") } }
 	@{ name = "frontend";		condition = { $frontend_libs.Contains("react") -or $frontend_libs.Contains("knockout") -or $frontend_libs.Contains("vue") } }
 	@{ name = "react";			condition = { $frontend_libs.Contains("react") } }
