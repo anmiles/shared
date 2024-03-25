@@ -115,8 +115,13 @@ Function InvokeRepo($repository) {
         $new_branch = $new_branches[0]
     }
 
-    Invoke-Command $action
-    Pop-Location
+    try {
+        Invoke-Command $action
+    } catch {
+        throw $_
+    } finally {
+        Pop-Location
+    }
 }
 
 if (!$name -or $name -eq "this") {
