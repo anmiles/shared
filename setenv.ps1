@@ -164,6 +164,10 @@ function global:fmt {
     return ($output -join "")
 }
 
+function global:whereami($text = (Get-PSCallStack)[0].Command) {
+    Write-Host (fmt "{DarkGray:$(Get-Location) * $text}")
+}
+
 $paths = [System.Collections.ArrayList]($env:PATH -split ";")
 $sourcePaths = @()
 
