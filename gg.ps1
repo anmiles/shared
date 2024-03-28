@@ -64,7 +64,7 @@ $files = if ($mock) {
 $files = $files | Sort { $_.Contains("/") }, { $_ }
 
 if ($file_pattern) {
-    $files = $files | grep -E $file_pattern
+    $files = $files | grep -i -E $file_pattern
 }
 
 if ($text_pattern) {
@@ -77,9 +77,9 @@ if ($text_pattern) {
         $file_id ++
 
         $entries = if ($mock) {
-            @($mock[$file] | grep -n -E $text_pattern)
+            @($mock[$file] | grep -i -n -E $text_pattern)
         } else {
-            @(grep -n -E $text_pattern $file.Replace("/", "\\"))
+            @(grep -i -n -E $text_pattern $file.Replace("/", "\\"))
         }
 
         switch ($format) {
@@ -90,7 +90,7 @@ if ($text_pattern) {
                     lines = @(
                         if ($entries) {
                             if ($value) {
-                                $entries = $entries | % { [Regex]::Match($_, $text_pattern).Groups[1].Value }
+                                $entries = $entries | % { [Regex]::Match($_, $text_pattern, 'IgnoreCase').Groups[1].Value }
                             }
 
                             $entries | % { $split = $_ -split '^(\d+):'; @{ line = [int]$split[1]; value = $split[2] } }
@@ -116,7 +116,7 @@ if ($text_pattern) {
 
                 $entries | % {
                     $nothing, $line, $entry = $_ -split '^(\d+):'
-                    $value_str = [Regex]::Match($entry, $text_pattern).Groups[1].Value
+                    $value_str = [Regex]::Match($entry, $text_pattern, 'IgnoreCase').Groups[1].Value
 
                     if ($format -eq "lines") {
                         if ($value) {
@@ -130,7 +130,7 @@ if ($text_pattern) {
                         if ($value) {
                             $output += fmt $value_str "DarkYellow"
                         } else {
-                            $entry_split = [Regex]::Replace($entry, $text_pattern, { param($match) $token + $match.Groups[0].Value + $token }) -split $token
+                            $entry_split = [Regex]::Replace($entry, $text_pattern, { param($match) $token + $match.Groups[0].Value + $token }, 'IgnoreCase') -split $token
 
                             $entry_split | % { $i = 0 } {
                                 if ($i++ % 2) {

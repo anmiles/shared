@@ -5,7 +5,7 @@
 
 $packages = @{}
 
-gg package.json | % {
+gg 'package\.json' | % {
 	$package = (file $_ | ConvertFrom-Json)
 
 	@($package.dependencies, $package.devDependencies) `

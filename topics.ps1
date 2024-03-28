@@ -46,14 +46,18 @@ $technologies = @(
 	@{ name = "phantomjs";		condition = { $packages.Contains("phantom") -or $packages.Contains("phantomjs") } }
 	@{ name = "docker";			condition = { $packageJSONs | ? { $_.scripts -and $_.scripts | grep docker } } }
 	@{ name = "electron";		condition = { $packages.Contains("electron") } }
-	@{ name = "mssql";			condition = { $packages.Contains("mssql") -or ($files | grep -i 'web\.config$' | ? { gg $_ "<connectionStrings>" }) } }
-	@{ name = "aws";			condition = { (gg .json ami_name) -or (gg provider.tf '"aws"') } }
+	@{ name = "mssql";			condition = { $packages.Contains("mssql") -or (gg 'web\.config$' "<connectionStrings>") } }
+	@{ name = "aws";			condition = { (gg '\.json$' ami_name) -or (gg 'provider\.tf$' '"aws"') } }
 	@{ name = "stl";			condition = { $files | grep '\.stl$' } }
 	@{ name = "maps";			condition = { $frontend_libs.Contains("leaflet") } }
 	@{ name = "charts";			condition = { $packages.Contains("chart.js") -or $packages.Contains("graph") -or $packages.Contains("vega") } }
 	@{ name = "telegraf";		condition = { $packages.Contains("telegraf") } }
-	@{ name = "telethon";		condition = { $files | grep '\.py$' | ? { gg $_ telethon } } }
+	@{ name = "telethon";		condition = { gg '\.py$' telethon } }
 	@{ name = "telegram";		condition = { $packages | grep telegram } }
+)
+
+$ignore_repositories = @(
+	"patch"
 )
 
 $topics = @{}
@@ -68,12 +72,17 @@ repo -name $name -quiet {
 		return
 	}
 
+	if ($ignore_repositories | ? { $_ -eq $name }) {
+		out "    {DarkYellow:[ignore]}"
+		return
+	}
+
 	$topics[$name] = @()
 	$packages = (packages).name
 	if (!$packages) { $packages = @() }
 	$files = gg
 	$packageJSONs = $files | grep package.json | % { file $_ | ConvertFrom-JSON }
-	$frontend_libs_in_html = gg '\.html$' -E "/\($($frontend_libs_names -Join "|")\)\W"
+	$frontend_libs_in_html = gg '\.html$' "src=.[^\`"]*?/($($frontend_libs_names -Join "|"))\W" -format lines
 	$frontend_libs = $frontend_libs_names | ? {
 		if ($packages.Contains($_)) { return $true }
 		if ($files | grep "/$_\W") { return $true }

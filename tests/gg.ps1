@@ -1,7 +1,7 @@
 $mock = @{
 	"src/a.ts" = "import { b1 } from './b1';`n`nimport { b2 } from './b2';`n`nconsole.log(1);`n"
-	"src/b1.ts" = "console.log(2);`n"
-	"src/b2.ts" = "import { c1, c2 } from './c';`n`nconsole.log(3);`n"
+	"src/b1.TS" = "console.log(2);`n"
+	"src/b2.ts" = "IMPORT { c1, c2 } from './c';`n`nconsole.log(3);`n"
 }
 
 @(
