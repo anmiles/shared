@@ -84,9 +84,12 @@ function AddAndCommit($message, $filenames) {
 
     if ($unmerged -eq 0) {
         if ($empty) { $allow_empty = "--allow-empty" }
-        $escaped_message = $message -replace '"', "'" -replace '\$', '\$'
-        git commit -m $escaped_message $allow_empty
-        [Environment]::SetEnvironmentVariable("RECENT_COMMIT", (git rev-parse HEAD), "Process")
+
+        if ($empty -or $message) {
+            $escaped_message = $message -replace '"', "'" -replace '\$', '\$'
+            git commit -m $escaped_message $allow_empty
+            [Environment]::SetEnvironmentVariable("RECENT_COMMIT", (git rev-parse HEAD), "Process")
+        }
     } else {
         if (Test-Path .git/MERGE_HEAD) {
             git commit --file .git/MERGE_MSG | Out-Null
