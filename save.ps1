@@ -173,7 +173,6 @@ repo -name $name -quiet:$quiet -action {
                 } }
                 [PSCustomObject]@{ message = "split"; alias = "+"; description = "Split changes between commits"; action = {
                     $flags.ready = $true
-                    $flags.skip = $true
                     $splitfile = Join-Path $env:TEMP "COMMIT_SPLIT"
                     $lines = git status --short --untracked-files --renames
                     $maxLength = ($lines | % { $_.Length } | Measure-Object -Maximum).Maximum
