@@ -20,11 +20,6 @@ Param (
     [string[]]$changed,
     [string[]]$removed
 )
-
-if ((git diff --name-only | grep CHANGELOG.md) -or (git diff --name-only --cached | grep CHANGELOG.md)) {
-	throw "CHANGELOG.md is changed but not committed yet. Shouldn't add multiple changelog entries for one commit"
-}
-
 $modes = @("major", "minor", "patch")
 
 if (!($modes.Contains($mode))) {
@@ -37,6 +32,10 @@ repo -name $name -quiet -action {
 
 	if (!(Test-Path $file)) {
 		"No $filename in $repo"
+	}
+
+	if ((git diff --name-only | grep $file) -or (git diff --name-only --cached | grep $file)) {
+		throw "$file is changed but not committed yet. Shouldn't add multiple changelog entries for one commit"
 	}
 
 	$contents = file $filename
