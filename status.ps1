@@ -12,7 +12,7 @@ Param (
 gitservice -token actions -exec {
     repo $name -quiet {
         try {
-            $result = Load-GitService "https://api.github.com/repos/anmiles/$name/actions/runs" -data @{ event = "push"; per_page = 1 }
+            $result = Load-GitService "https://api.github.com/repos/$env:GITHUB_USER/$name/actions/runs" -data @{ event = "push"; per_page = 1 }
         } catch {
             $result = @{
                 workflow_runs = @()
