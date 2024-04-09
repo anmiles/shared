@@ -64,7 +64,7 @@ $files = if ($mock) {
 $files = $files | Sort { $_.Contains("/") }, { $_ }
 
 if ($file_pattern) {
-    $files = $files | grep -i -E $file_pattern
+    $files = $files | grep -i -P $file_pattern
 }
 
 if ($text_pattern) {
@@ -77,9 +77,9 @@ if ($text_pattern) {
         $file_id ++
 
         $entries = if ($mock) {
-            @($mock[$file] | grep -i -n -E $text_pattern)
+            @($mock[$file] | grep -i -n -P $text_pattern)
         } else {
-            @(grep -i -n -E $text_pattern $file.Replace("/", "\\"))
+            @(grep -i -n -P $text_pattern $file.Replace("/", "\\"))
         }
 
         switch ($format) {

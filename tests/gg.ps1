@@ -50,7 +50,7 @@ $mock = @{
 			fmt "{DarkMagenta:src/b2.ts}:{DarkCyan:1}:{Red:import {}{DarkYellow: c1, c2 }{Red:`}} from './c';"
 		)
 		Comment = "[file] [line] text"
-}
+	}
 	@{
 		Command = "gg -mock `$mock '\.ts$' 'import \{(.+)\}' -value"
 		Expected = @(
