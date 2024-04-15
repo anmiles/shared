@@ -134,8 +134,7 @@ if ($concat) {
 
     $cwd = Split-Path $input_filename -Parent
     $list_filename = $input_filename.Replace($input.Name, "ffmpeg.txt")
-    $input_content = ($inputs | % { "file $($_.FullName.Replace($cwd, '').Replace('\', '/') -replace '^\/', '')" }) -join "`n"
-    Write-Host $input_content
+    $input_content = ($inputs | Sort { [regex]::Replace($_, '\d+', { $args[0].Value.PadLeft(20) }) } | % { "file $($_.FullName.Replace($cwd, '').Replace('\', '/') -replace '^\/', '')" }) -join "`n"
     file $list_filename $input_content
 } else {
     $ffprobe = $(ffprobe -v error -show_entries stream=width,height,duration -of csv=s=,:p=0 $input_filename) | ? { $_ -ne "N/A" } | Sort
