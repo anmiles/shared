@@ -95,7 +95,7 @@ switch ($action) {
 			}
 
 			gg | % {
-				$src = Join-Path $template $_
+				$src = $_
 				$dst = Join-Path $location $_
 				$content = file $src
 
@@ -107,7 +107,7 @@ switch ($action) {
 					$content = $content.Replace("$template", $_.Value)
 				}
 
-				Write-Host "Creating $name ... " -NoNewLine
+				Write-Host "Creating $src ... " -NoNewLine
 				file $name $content
 				Write-Host "done!"
 			}
