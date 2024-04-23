@@ -108,7 +108,9 @@ switch ($action) {
 				}
 
 				Write-Host "Creating $src ... " -NoNewLine
-				file $name $content
+				$parent = Split-Path $dst -Parent
+				New-Item $parent -Type Directory -Force | Out-Null
+				file $dst $content
 				Write-Host "done!"
 			}
 		}
