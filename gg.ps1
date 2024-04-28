@@ -125,7 +125,7 @@ if ($text_pattern) {
                             $entry
                         }
                     } else {
-                        $output = fmt "{DarkMagenta:$file}:{DarkCyan:$line}:"
+                        $output = (fmt $file "DarkMagenta") + ":" + (fmt $line "DarkCyan") + ":"
 
                         if ($value) {
                             $output += fmt $value_str "DarkYellow"

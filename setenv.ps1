@@ -83,7 +83,8 @@ function global:fmt {
     Param (
         [string]$text,
         [string]$ForegroundColor = $null,
-        [string]$BackgroundColor = $null
+        [string]$BackgroundColor = $null,
+        [switch]$parse
     )
 
     $ForegroundColors = @{
@@ -151,21 +152,25 @@ function global:fmt {
     $output = @()
 
     if ($text) {
-        $parts = $text -split "\{([A-Za-z]+):(.*?(?![^``]\}))\}"
+        if ($parse) {
+            $parts = $text -split "\{([A-Za-z]+):(.*?(?![^``]\}))\}"
 
-        for ($i = 0; $i -lt $parts.Length - 1; $i += 3) {
-            $output += Colorize $parts[$i] $ForegroundColor $BackgroundColor
-            $output += Colorize $parts[$i + 2] $parts[$i + 1] $BackgroundColor
+            for ($i = 0; $i -lt $parts.Length - 1; $i += 3) {
+                $output += Colorize $parts[$i] $ForegroundColor $BackgroundColor
+                $output += Colorize $parts[$i + 2] $parts[$i + 1] $BackgroundColor
+            }
+
+            $output += Colorize $parts[$parts.Length - 1] $ForegroundColor $BackgroundColor
+        } else {
+            $output += Colorize $text $ForegroundColor $BackgroundColor
         }
-
-        $output += Colorize $parts[$parts.Length - 1] $ForegroundColor $BackgroundColor
     }
 
     return ($output -join "")
 }
 
 function global:whereami($text = (Get-PSCallStack)[0].Command) {
-    Write-Host (fmt "{DarkGray:$(Get-Location) * $text}")
+    Write-Host (fmt "$(Get-Location) * $text" "DarkGray")
 }
 
 $paths = [System.Collections.ArrayList]($env:PATH -split ";")

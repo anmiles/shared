@@ -21,12 +21,12 @@ Param (
 $length = 0
 
 if ($text -and ($text.Trim() -or $NoNewline)) {
-    Write-Host (fmt $text $ForegroundColor) -NoNewline
+    Write-Host (fmt $text $ForegroundColor -parse) -NoNewline
 
     if ($underline) {
         Write-Host ""
         Write-Host ""
-        Write-Host (fmt ("-" * $length) $ForegroundColor)
+        Write-Host (fmt ("-" * $length) $ForegroundColor -parse)
     }
 }
 
