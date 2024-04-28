@@ -44,20 +44,20 @@ $mock = @{
 	@{
 		Command = "gg -mock `$mock '\.ts$' 'import \{(.+)\}'"
 		Expected = @(
-			fmt "{DarkMagenta:src/a.ts}:{DarkCyan:1}:{Red:import {}{DarkYellow: b1 }{Red:`}} from './b1';"
-			fmt "{DarkMagenta:src/a.ts}:{DarkCyan:3}:{Red:import {}{DarkYellow: b2 }{Red:`}} from './b2';"
+			fmt -parse "{DarkMagenta:src/a.ts}:{DarkCyan:1}:{Red:import {}{DarkYellow: b1 }{Red:`}} from './b1';"
+			fmt -parse "{DarkMagenta:src/a.ts}:{DarkCyan:3}:{Red:import {}{DarkYellow: b2 }{Red:`}} from './b2';"
 			""
-			fmt "{DarkMagenta:src/b2.ts}:{DarkCyan:1}:{Red:import {}{DarkYellow: c1, c2 }{Red:`}} from './c';"
+			fmt -parse "{DarkMagenta:src/b2.ts}:{DarkCyan:1}:{Red:import {}{DarkYellow: c1, c2 }{Red:`}} from './c';"
 		)
 		Comment = "[file] [line] text"
 	}
 	@{
 		Command = "gg -mock `$mock '\.ts$' 'import \{(.+)\}' -value"
 		Expected = @(
-			fmt "{DarkMagenta:src/a.ts}:{DarkCyan:1}:{DarkYellow: b1 }"
-			fmt "{DarkMagenta:src/a.ts}:{DarkCyan:3}:{DarkYellow: b2 }"
+			fmt -parse "{DarkMagenta:src/a.ts}:{DarkCyan:1}:{DarkYellow: b1 }"
+			fmt -parse "{DarkMagenta:src/a.ts}:{DarkCyan:3}:{DarkYellow: b2 }"
 			""
-			fmt "{DarkMagenta:src/b2.ts}:{DarkCyan:1}:{DarkYellow: c1, c2 }"
+			fmt -parse "{DarkMagenta:src/b2.ts}:{DarkCyan:1}:{DarkYellow: c1, c2 }"
 		)
 		Comment = "[file] [line] text -value"
 	}
