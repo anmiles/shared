@@ -153,7 +153,7 @@ $repositories | % {
 }
 
 Function GetCandidate($name) {
-    $startsWith = @($repositories | ? { $_.name.StartsWith($name) })
+    $startsWith = @($repositories | ? { $_.name.StartsWith($name) -or $_.name.EndsWith($name) })
     if ($startsWith.Count -eq 1) {
         return $startsWith[0]
     }
@@ -167,7 +167,8 @@ Function GetCandidate($name) {
 if (!$found) {
     $candidate = GetCandidate -name $name
 
-    if (confirm "Did you mean {Green:$($candidate.name)}") {
+    # if (confirm "Did you mean {Green:$($candidate.name)}") {
+        [Environment]::SetEnvironmentVariable("RECENT_REPO", $candidate.name, "Process")
         InvokeRepo $candidate
-    }
+    # }
 }
