@@ -11,6 +11,8 @@
     Shell to use (if not specified - use Git bash)
 .PARAMETER new
     Whether to open new window
+.PARAMETER wait
+    Whether to wait after executing command passed
 .PARAMETER background
     Whether new window should be opened in background
 .PARAMETER debug
@@ -36,6 +38,7 @@ Param (
     [ValidateSet('', 'git', 'wsl', 'cygwin')][string]$shell,
     [HashTable]$envars = @{},
     [switch]$new,
+    [switch]$wait,
     [switch]$background,
     [switch]$debug
 )
@@ -47,6 +50,7 @@ Param (
 -shell $shell `
 -envars $envars `
 -new:$new `
+-wait:$wait `
 -background:$background `
 -debug:$debug
 
