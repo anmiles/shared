@@ -25,8 +25,14 @@ if ($commit) {
 
 $packages | ? { $_ -eq $package_json -or $_.EndsWith("/$package_json") } | % {
     $parent = Join-Path $path $_ | Resolve-Path | Split-Path -Parent
+
+    if (Get-Command | ? { $_.Name -eq "yarn" }) {
     yarn --cwd $parent workspaces info 2>&1 | Out-Null
     $yarn_detected = $? -or (Join-Path $parent $yarn_lock | Test-Path)
+    } else {
+        $yarn_detected = $false
+    }
+
     $action = switch ($yarn_detected) { $true { "yarn install" } $false { "npm install" } }
     out "Package.json $detected in {Yellow:$parent}. Consider to {Yellow:$action}" -ForegroundColor Magenta
 }
