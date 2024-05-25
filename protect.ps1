@@ -45,7 +45,7 @@ repo -name $name -quiet:$quiet -action {
         gitservice -load $url -method PUT -token admin -data $data | Out-Null
     } -gitlab {
         $data = "push_access_level=40&merge_access_level=40&unprotect_access_level=40"
-        $url = "https://gitlab.com/api/v4/projects/$repository_id/protected_branches?name=$branch_name&$data"
+        $url = "https://$env:GITLAB_HOST/api/v4/projects/$repository_id/protected_branches?name=$branch_name&$data"
         gitservice -load $url -method POST -token admin | Out-Null
     }
 }

@@ -9,26 +9,82 @@
     Whether to get repository from private group rather than primary
 .PARAMETER crlf
     Whether to set autocrlf=true for repository to let it have Windows-style line breaks
+.PARAMETER test
+    Only show calculated repository url
+.EXAMPLE
+    clone eslint-config
+    # clone eslint-config repository from the preferred git server
+.EXAMPLE
+    clone lib/downloader
+    # clone downloader repository from the lib namespace from the preferred git server
+.EXAMPLE
+    clone https://github.com/username/repo
+    clone https://gitlab.com/group/repo
+    clone https://custom.gitlab.com/group/repo
+    # clone repository by its web url
+.EXAMPLE
+    clone https://github.com/username/repo.git
+    clone https://gitlab.com/group/repo.git
+    clone https://custom.gitlab.com/group/repo.git
+    # clone repository by its https url
+.EXAMPLE
+    clone git@github.com:username/repo.git
+    clone git@gitlab.com:username/repo.git
+    clone git@custom.gitlab.com:username/repo.git
+    # clone repository by its ssh url
 #>
 
 Param (
     [Parameter(Mandatory = $true)][string]$name,
-    [string]$destination_name = $name,
     [switch]$private,
-    [switch]$crlf
+    [switch]$crlf,
+    [switch]$test
 )
 
-$source = gitselect -github {
-    $user = $env:GITHUB_USER
-    "git@github.com:$user/$name.git"
-} -gitlab {
-    $gitlab_group = $env:WORKSPACE_NAME
+$git_host = gitselect -github { "github.com" } -gitlab { if ($env:GITLAB_HOST) { $env:GITLAB_HOST } else { "gitlab.com" } }
+$git_user = gitselect -github { $env:GITHUB_USER } -gitlab { $env:GITLAB_USER }
 
-    if ($private -and ($env:GITLAB_USER -ne $env:WORKSPACE_NAME)) {
-        $gitlab_group = "$($env:GITLAB_USER)_$gitlab_group"
+Function Normalize($name) {
+    if ($name -match '^https?://(.+?)/(?:(.+)/)?(.+)\.git$') {
+        $source = $name
+        $prefix = $matches[2]
+        $name = $matches[3]
+        return @($name, $prefix, $source)
     }
 
-    "git@gitlab.com:$gitlab_group/$name.git"
+    if ($name -match '^https?://(.+?)/(?:(.+)/)?(.+)$') {
+        $_host = $matches[1]
+        $prefix = $matches[2]
+        $name = $matches[3]
+        $source = "git@$($_host):$prefix/$name.git"
+        return @($name, $prefix, $source)
+    }
+
+    if ($name -match '^git@(.+?):(?:(.+)/)?(.+?)\.git$') {
+        $source = $name
+        $prefix = $matches[2]
+        $name = $matches[3]
+        return @($name, $prefix, $source)
+    }
+
+    if ($name -match '^(.+)\/(.+?)$') {
+        $source = $name
+        $prefix = $matches[1]
+        $name = $matches[2]
+    } else {
+        $prefix = $git_user
+    }
+
+    $source = "git@$($git_host):$prefix/$name.git"
+    return @($name, $prefix, $source)
+}
+
+$name, $prefix, $source = Normalize $name
+$destination_name = gitselect -github { $name } -gitlab { if ($prefix -eq $git_user) { $name } else { "$prefix/$name" } }
+
+if ($test) {
+    @($name, $destination_name, $source)
+    exit
 }
 
 $destination = Join-Path $env:GIT_ROOT $destination_name
@@ -39,7 +95,7 @@ if (!(Test-Path $destination -Type Container)) {
     out "{Yellow: > create directory $destination}"
 
     if ($env:WSL_ROOT) {
-        sh "mkdir $env:WSL_ROOT/$destination_name"
+        sh "mkdir -p $env:WSL_ROOT/$destination_name"
     } else {
         [void](New-Item -Type Directory $destination -Force)
         takeown /f $destination | Out-Null
@@ -51,7 +107,10 @@ Push-Location $destination
 if (!(Test-Path (Join-Path $destination ".git") -Type Container)) {
     out "{Yellow: > initialize git directory}"
     git init
-    takeown /f (Join-Path $destination .git) | Out-Null
+
+    if (!$env:WSL_ROOT) {
+        takeown /f (Join-Path $destination .git) | Out-Null
+    }
 
     if ($crlf) {
         out "{Yellow: > set core.autocrlf to true}"
@@ -86,7 +145,7 @@ if ($remote_branches -and $remote_branches.Contains($repository.default_branch))
     git checkout $repository.default_branch
     out "{Yellow: > reset}"
     "git reset --quiet origin/$($repository.default_branch)"
-    git reset --quiet origin/$repository.default_branch
+    git reset --quiet "origin/$($repository.default_branch)"
 } else {
     out "{Yellow: > switch to $($repository.default_branch)}"
     git switch -c $repository.default_branch

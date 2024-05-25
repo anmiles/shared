@@ -29,7 +29,7 @@ repo -name this -quiet:$quiet -action {
 		$all_jobs = @()
 
 		do {
-			$url = "https://gitlab.com/api/v4/projects/$repository_id/jobs?per_page=100&page=$page" + $scopes
+			$url = "https://$env:GITLAB_HOST/api/v4/projects/$repository_id/jobs?per_page=100&page=$page" + $scopes
 			$page ++
 			Write-Host "Load $url " -NoNewline
 			$data = Load-GitService $url
