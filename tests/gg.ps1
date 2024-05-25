@@ -1,12 +1,12 @@
-$mock = @{
-	"src/a.ts" = "import { b1 } from './b1';`n`nimport { b2 } from './b2';`n`nconsole.log(1);`n"
-	"src/b1.TS" = "console.log(2);`n"
-	"src/b2.ts" = "IMPORT { c1, c2 } from './c';`n`nconsole.log(3);`n"
+$mockFile = Join-Path $PSScriptRoot gg.mock.json
+
+if ($env:WSL_ROOT) {
+	$mockFile = shpath -native $mockFile
 }
 
 @(
-    @{
-		Command = "gg -mock `$mock '\.ts$'"
+	@{
+		Command = "gg -mockFile $mockFile -file_pattern '\.ts$'"
 		Expected = @(
 			"src/a.ts"
 			"src/b1.ts"
@@ -15,7 +15,7 @@ $mock = @{
 		Comment = "[file] text"
 	}
 	@{
-		Command = "gg -mock `$mock '\.ts$' -format files"
+		Command = "gg -mockFile $mockFile -file_pattern '\.ts$' -format files"
 		Expected = @(
 			"src/a.ts"
 			"src/b1.ts"
@@ -24,7 +24,7 @@ $mock = @{
 		Comment = "[file] files"
 	}
 	@{
-		Command = "gg -mock `$mock '\.ts$' -format lines"
+		Command = "gg -mockFile $mockFile -file_pattern '\.ts$' -format lines"
 		Expected = @(
 			"src/a.ts"
 			"src/b1.ts"
@@ -33,26 +33,26 @@ $mock = @{
 		Comment = "[file] lines"
 	}
 	@{
-		Command = "gg -mock `$mock '\.ts$' -format json"
+		Command = "gg -mockFile $mockFile -file_pattern '\.ts$' -format json"
 		Expected = @(
 			"src/a.ts"
 			"src/b1.ts"
 			"src/b2.ts"
-		) | ConvertTo-Json
+		) | ConvertTo-Json -Depth 100 -Compress | % { [Regex]::Unescape($_) }
 		Comment = "[file] json"
 	}
 	@{
-		Command = "gg -mock `$mock '\.ts$' 'import \{(.+)\}'"
+		Command = "gg -mockFile $mockFile -file_pattern '\.ts$' -text_pattern 'import \{(.+)\}'"
 		Expected = @(
 			fmt -parse "{DarkMagenta:src/a.ts}:{DarkCyan:1}:{Red:import {}{DarkYellow: b1 }{Red:`}} from './b1';"
 			fmt -parse "{DarkMagenta:src/a.ts}:{DarkCyan:3}:{Red:import {}{DarkYellow: b2 }{Red:`}} from './b2';"
 			""
-			fmt -parse "{DarkMagenta:src/b2.ts}:{DarkCyan:1}:{Red:import {}{DarkYellow: c1, c2 }{Red:`}} from './c';"
+			fmt -parse "{DarkMagenta:src/b2.ts}:{DarkCyan:1}:{Red:IMPORT {}{DarkYellow: c1, c2 }{Red:`}} from './c';"
 		)
 		Comment = "[file] [line] text"
 	}
 	@{
-		Command = "gg -mock `$mock '\.ts$' 'import \{(.+)\}' -value"
+		Command = "gg -mockFile $mockFile -file_pattern '\.ts$' -text_pattern 'import \{(.+)\}' -value"
 		Expected = @(
 			fmt -parse "{DarkMagenta:src/a.ts}:{DarkCyan:1}:{DarkYellow: b1 }"
 			fmt -parse "{DarkMagenta:src/a.ts}:{DarkCyan:3}:{DarkYellow: b2 }"
@@ -62,7 +62,7 @@ $mock = @{
 		Comment = "[file] [line] text -value"
 	}
 	@{
-		Command = "gg -mock `$mock '\.ts$' 'import \{(.+)\}' -format files"
+		Command = "gg -mockFile $mockFile -file_pattern '\.ts$' -text_pattern 'import \{(.+)\}' -format files"
 		Expected = @(
 			"src/a.ts"
 			"src/b2.ts"
@@ -70,16 +70,16 @@ $mock = @{
 		Comment = "[file] [line] files"
 	}
 	@{
-		Command = "gg -mock `$mock '\.ts$' 'import \{(.+)\}' -format lines"
+		Command = "gg -mockFile $mockFile -file_pattern '\.ts$' -text_pattern 'import \{(.+)\}' -format lines"
 		Expected = @(
 			"import { b1 } from './b1';"
 			"import { b2 } from './b2';"
-			"import { c1, c2 } from './c';"
+			"IMPORT { c1, c2 } from './c';"
 		)
 		Comment = "[file] [line] lines"
 	}
 	@{
-		Command = "gg -mock `$mock '\.ts$' 'import \{(.+)\}' -format lines -value"
+		Command = "gg -mockFile $mockFile -file_pattern '\.ts$' -text_pattern 'import \{(.+)\}' -format lines -value"
 		Expected = @(
 			" b1 "
 			" b2 "
@@ -88,7 +88,7 @@ $mock = @{
 		Comment = "[file] [line] lines -value"
 	}
 	@{
-		Command = "gg -mock `$mock '\.ts$' 'import \{(.+)\}' -format json"
+		Command = "gg -mockFile $mockFile -file_pattern '\.ts$' -text_pattern 'import \{(.+)\}' -format json"
 		Expected = @(
 			@{
 				file = "src/a.ts"
@@ -113,15 +113,15 @@ $mock = @{
 				lines = @(
 					@{
 						line = 1
-						value = "import { c1, c2 } from './c';"
+						value = "IMPORT { c1, c2 } from './c';"
 					}
 				)
 			}
-		) | ConvertTo-Json
+		) | ConvertTo-Json -Depth 100 -Compress | % { [Regex]::Unescape($_) }
 		Comment = "[file] [line] json"
 	}
 	@{
-		Command = "gg -mock `$mock '\.ts$' 'import \{(.+)\}' -format json -value"
+		Command = "gg -mockFile $mockFile -file_pattern '\.ts$' -text_pattern 'import \{(.+)\}' -format json -value"
 		Expected = @(
 			@{
 				file = "src/a.ts"
@@ -150,7 +150,7 @@ $mock = @{
 					}
 				)
 			}
-		) | ConvertTo-Json
+		) | ConvertTo-Json -Depth 100 -Compress | % { [Regex]::Unescape($_) }
 		Comment = "[file] [line] json -value"
 	}
 )

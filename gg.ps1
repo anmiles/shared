@@ -14,7 +14,7 @@
         lines - plain list of lines (or files if text_pattern missing)
         json - machine-readable JSON
 .PARAMETER mock
-    Mock file system (for test purposes)
+    Whether to mock file system (for test purposes)
 .PARAMETER value
     Return value of the first matched group. Not applicable if format == 'files' or text_pattern missing
 .EXAMPLE
@@ -25,10 +25,10 @@
     # get all *.ts files in JSON format
 .EXAMPLE
     gg '\.ts$' 'import \{(.+)\}'
-    # get all all *.ts files and their named imports
+    # get all *.ts files and their named imports
 .EXAMPLE
     gg '\.ts$' 'import \{(.+)\}' -value
-    # get all all *.ts files and their named imports (names only)
+    # get all *.ts files and their named imports (names only)
 .EXAMPLE
     gg '\.ts$' 'import \{(.+)\}' -format files
     # get all *.ts files that contains named imports
@@ -40,10 +40,10 @@
     # get all named imports (names only) inside *.ts files
 .EXAMPLE
     gg '\.ts$' 'import \{(.+)\}' -format json
-    # get all all *.ts files and their named imports in JSON format
+    # get all *.ts files and their named imports in JSON format
 .EXAMPLE
     gg '\.ts$' 'import \{(.+)\}' -format json -value
-    # get all all *.ts files and their named imports (names only) in JSON format
+    # get all *.ts files and their named imports (names only) in JSON format
 
 #>
 
@@ -51,12 +51,23 @@ Param (
     [string]$file_pattern,
     [string]$text_pattern,
     [ValidateSet('text', 'files', 'lines', 'json')][string]$format = "text",
-    [HashTable]$mock,
+    [string]$mockFile,
     [switch]$value
 )
 
+if ($env:WSL_ROOT) {
+    $cmd = "gg -file_pattern '$file_pattern' -text_pattern '$text_pattern' -format '$format' -mockFile '$mockFile'"
+    if ($value) { $cmd += " -value" }
+    sh $cmd
+    exit
+}
+
+if ($mockFile) {
+    $mock = (file $mockFile | ConvertFrom-Json)
+}
+
 $files = if ($mock) {
-    $mock.Keys
+    $mock.PSObject.Properties.Name
 } else {
     (@(git ls-files) + @(git ls-files --exclude-standard --others) ) | ? { Test-Path $_ }
 }
@@ -70,14 +81,14 @@ if ($file_pattern) {
 if ($text_pattern) {
     $json = @()
 
-    $file_id = -1
+    $file_index = -1
 
     $files | % {
         $file = $_
-        $file_id ++
+        $file_index ++
 
         $entries = if ($mock) {
-            @($mock[$file] | grep -i -n -P $text_pattern)
+            @($mock.$file | grep -i -n -P $text_pattern)
         } else {
             @(grep -i -n -P $text_pattern $file.Replace("/", "\\"))
         }
@@ -86,18 +97,20 @@ if ($text_pattern) {
             "json" {
                 $json += @{
                     file = $file
+                    lines = @($entries | % {
+                        $split = $_ -split '^(\d+):';
+                        $line = [int]$split[1]
+                        $value_str = $split[2]
 
-                    lines = @(
-                        if ($entries) {
-                            if ($value) {
-                                $entries = $entries | % { [Regex]::Match($_, $text_pattern, 'IgnoreCase').Groups[1].Value }
-                            }
-
-                            $entries | % { $split = $_ -split '^(\d+):'; @{ line = [int]$split[1]; value = $split[2] } }
-                        } else {
-                            @()
+                        if ($value) {
+                            $value_str = [Regex]::Match($value_str, $text_pattern, 'IgnoreCase').Groups[1].Value
                         }
-                    )
+
+                        @{
+                            line = $line
+                            value = $value_str
+                        }
+                    })
                 }
             }
 
@@ -110,7 +123,7 @@ if ($text_pattern) {
             default {
                 $token = [Guid]::NewGuid().ToString()
 
-                if ($file_id -gt 0 -and $entries -and $format -eq "text") {
+                if ($file_index -gt 0 -and $entries -and $format -eq "text") {
                     ""
                 }
 
@@ -130,8 +143,8 @@ if ($text_pattern) {
                         if ($value) {
                             $output += fmt $value_str "DarkYellow"
                         } else {
-                            $entry_split = [Regex]::Replace($entry, $text_pattern, { param($match) $token + $match.Groups[0].Value + $token }, 'IgnoreCase') -split $token
-
+                            $tokenized = [Regex]::Replace($entry, $text_pattern, { param($match) $token + $match.Groups[0].Value + $token }, 'IgnoreCase')
+                            $entry_split = $tokenized -split $token
                             $entry_split | % { $i = 0 } {
                                 if ($i++ % 2) {
                                     if ($value_str) {
@@ -156,12 +169,12 @@ if ($text_pattern) {
     }
 
     if ($format -eq "json") {
-        $json | ConvertTo-Json
+        $json | ConvertTo-Json -Depth 100 -Compress | % { [Regex]::Unescape($_) }
     }
 } else {
     switch ($format) {
         "json" {
-            $files | ConvertTo-Json
+            $files | ConvertTo-Json -Depth 100 -Compress | % { [Regex]::Unescape($_) }
         }
         default {
             $files
