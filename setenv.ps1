@@ -88,41 +88,41 @@ function global:fmt {
     )
 
     $ForegroundColors = @{
-        0 = 30
-        1 = 34
-        2 = 32
-        3 = 36
-        4 = 31
-        5 = 35
-        6 = 33
-        7 = 37
-        8 = 90
-        9 = 94
-        10 = 92
-        11 = 96
-        12 = 91
-        13 = 95
-        14 = 93
-        15 = 97
+        Black = 30
+        DarkBlue = 34
+        DarkGreen = 32
+        DarkCyan = 36
+        DarkRed = 31
+        DarkMagenta = 35
+        DarkYellow = 33
+        Gray = 37
+        DarkGray = 90
+        Blue = 94
+        Green = 92
+        Cyan = 96
+        Red = 91
+        Magenta = 95
+        Yellow = 93
+        White = 97
     }
 
     $BackgroundColors = @{
-        0 = 40
-        1 = 44
-        2 = 42
-        3 = 46
-        4 = 41
-        5 = 45
-        6 = 43
-        7 = 47
-        8 = 100
-        9 = 104
-        10 = 102
-        11 = 106
-        12 = 101
-        13 = 105
-        14 = 103
-        15 = 107
+        Black = 40
+        DarkBlue = 44
+        DarkGreen = 42
+        DarkCyan = 46
+        DarkRed = 41
+        DarkMagenta = 45
+        DarkYellow = 43
+        Gray = 47
+        DarkGray = 100
+        Blue = 104
+        Green = 102
+        Cyan = 106
+        Red = 101
+        Magenta = 105
+        Yellow = 103
+        White = 107
     }
 
     $result = @{ length = 0 }
@@ -134,16 +134,18 @@ function global:fmt {
 
         $f1 = $b1 = $c0 = ""
 
+        $eseq = "$([char]27)"
+
         if ($ForegroundColor) {
-            $code = $ForegroundColors[[int][ConsoleColor]$ForegroundColor]
-            $f1 = "$([char]27)[$($code)m"
-            $c0 = "$([char]27)[m"
+            $code = $ForegroundColors[$ForegroundColor]
+            $f1 = "$eseq[$($code)m"
+            $c0 = "$eseq[m"
         }
 
         if ($BackgroundColor) {
-            $code = $BackgroundColors[[int][ConsoleColor]$BackgroundColor]
-            $b1 = "$([char]27)[$($code)m"
-            $c0 = "$([char]27)[m"
+            $code = $BackgroundColors[$BackgroundColor]
+            $b1 = "$eseq[$($code)m"
+            $c0 = "$eseq[m"
         }
 
         return "$b1$f1$str$c0"
