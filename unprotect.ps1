@@ -27,7 +27,7 @@ repo -name $name -quiet:$quiet -action {
         $url = "https://api.github.com/repos/$env:GITHUB_USER/$name/branches/$branch_name/protection"
         gitservice -load $url -method DELETE -token admin | Out-Null
     } -gitlab {
-        $url = "https://gitlab.com/api/v4/projects/$repository_id/protected_branches/$branch_name"
+        $url = "https://$env:GITLAB_HOST/api/v4/projects/$repository_id/protected_branches/$branch_name"
         gitservice -load $url -method DELETE -token admin | Out-Null
     }
 }

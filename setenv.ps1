@@ -207,12 +207,17 @@ $vars.SCRIPTS_ROOT = $scripts_root
 $vars.MODULES_ROOT = Join-Path $scripts_root "modules"
 $vars.TERRAFORM_ROOT = $terraform_root
 if (!$vars.PROMPT_COLOR) { $vars.PROMPT_COLOR = "White" }
+if (!$vars.GITLAB_HOST) { $vars.GITLAB_HOST = "gitlab.com" }
 
 $vars.Keys | % {
     $value = $vars[$_]
 
     if (!($value -is [string])) {
-        $value = $value | ConvertTo-Json
+        if ($value -is [System.Object[]] -and $value.Length -eq 0) {
+            $value = "[]"
+        } else {
+            $value = $value | ConvertTo-Json
+        }
     }
 
     [Environment]::SetEnvironmentVariable($_, $value, "Process")

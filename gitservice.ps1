@@ -35,15 +35,15 @@
 	gitservice -scan -get all
 	# scan all repositories and get information about them
 .EXAMPLE
-	gitservice -load https://gitlab.com/api/something
-	# perform get request to https://gitlab.com/api/something
+	gitservice -load https://$env:GITLAB_HOST/api/something
+	# perform get request to https://$env:GITLAB_HOST/api/something
 	# works only if $env:GIT_SERVICE = "gitlab"
 .EXAMPLE
 	gitservice -load https://api.github.com/change_something -method PUT -data @{key = "value"}
 	# perform put request to https://api.github.com/change_something with setting key to value
 	# works only if $env:GIT_SERVICE = "github"
 .EXAMPLE
-	gitservice -exec { Load-GitService https://gitlab.com/api/something; Load-GitService https://gitlab.com/api/something2;  }
+	gitservice -exec { Load-GitService https://$env:GITLAB_HOST/api/something; Load-GitService https://$env:GITLAB_HOST/api/something2;  }
 	# perform 2 get requests using 1 token
 	# works only if $env:GIT_SERVICE = "gitlab"
 #>
@@ -120,7 +120,7 @@ Function Get-Local($this_repo) {
 }
 
 Function Get-Remote($this_repo) {
-	if (git branch) {
+	if (git -C $this_repo branch) {
 		$branch = git -C $this_repo rev-parse --abbrev-ref HEAD
 		$remote_name = git -C $this_repo config "branch.$branch.remote"
 	} else {

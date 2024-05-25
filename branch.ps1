@@ -20,7 +20,7 @@ Param (
     [Parameter(ValueFromRemainingArguments = $true)][string[]]$name,
     [switch]$d,
     [switch]$force,
-    [switch]$exact
+    [switch]$exact = !!$env:GIT_BRANCH_EXACT
 )
 
 while (!$name) {
