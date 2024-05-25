@@ -20,7 +20,7 @@
 Param (
     [Parameter(Mandatory = $true)][string]$message,
     [string]$title,
-    [string]$user = "anmiles",
+    [string]$user = $env:PUSH_USER,
     [string]$app = "notification",
     [string]$sound = "magic",
     [int]$priority = 0,
@@ -28,7 +28,7 @@ Param (
     [switch]$local
 )
 
-if (!$local) {
+if (!$local -and !!$user) {
     $user_key = "pushover_user_$user"
     $app_key = "pushover_app_$($user)_$app"
 
