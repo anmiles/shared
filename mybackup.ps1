@@ -120,7 +120,7 @@ try {
             $dstParent = Split-Path $dst
             $status.Value = "copy $src to $dst"
             New-Item $dstParent -Type Directory -Force | Out-Null
-            Copy-Item $src $dst -Force | Out-Null
+            Copy-Item -LiteralPath $src $dst -Force | Out-Null
         }
     }
 
