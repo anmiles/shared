@@ -45,6 +45,8 @@ Function global:getenc($num) {
 }
 
 Function global:enc($text, $from, $to) {
+    if (!$text) { return "" }
+
     $from = getenc $from
     $to = getenc $to
 
