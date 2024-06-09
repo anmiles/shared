@@ -64,8 +64,15 @@ $results = @{
     $false = "FAIL"
 }
 
-$data = Import-Module $file -Force | % {
-    $test = $_
+$data = (Import-Module $file -Force) | % {
+    $test = if ($_ -is [HashTable]) {
+        $_
+    } else {
+        $hashTable = @{}
+        $_.PSObject.Properties | % { $hashTable[$_.Name] = $_.Value }
+        $hashTable
+    }
+
     if ($test.Command) { $test.Input = $test.Command }
     $test.Input = Stringify(ShowInput($test.Input))
     if (!$test.Value) { $test.Value = $test.Input }
