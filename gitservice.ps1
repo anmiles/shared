@@ -123,6 +123,14 @@ Function Get-Remote($this_repo) {
 	if (git -C $this_repo branch) {
 		$branch = git -C $this_repo rev-parse --abbrev-ref HEAD
 		$remote_name = git -C $this_repo config "branch.$branch.remote"
+
+		if (!$remote_name) {
+			if ((git -C $this_repo config --list) -match 'remote\.(.*)\.url=') {
+				$remote_name = $matches[1]
+			} else {
+				$remote_name = $default_remote_name
+			}
+		}
 	} else {
 		$remote_name = $default_remote_name
 	}
@@ -162,14 +170,14 @@ if ($scan) {
 	}
 
 	if ($shared_repositories) {
+		Write-Host "Scanning shared repositories..."
 
-	Write-Host "Scanning shared repositories..."
 		if ($repo -eq "all") {
 			$shared_repositories | % {
 				$repository = gitselect -github {
 					Load-GitService "https://api.github.com/repos/$user/$_"
 				} -gitlab {
-					Load-GitService "https://gitlab.com/api/v4/projects/$_"
+					Load-GitService "https://$env:GITLAB_HOST/api/v4/projects/$_"
 				}
 
 				$repository.url = gitselect -github { $repository.ssh_url } -gitlab { $repository.ssh_url_to_repo }
@@ -194,7 +202,7 @@ if ($scan) {
 			$repositories = gitselect -github {
 				Load-GitService "https://api.github.com/user/repos" -data @{ per_page = 100; page = $page }
 			} -gitlab {
-				Load-GitService "https://gitlab.com/api/v4/projects?$_&per_page=100&page=$page"
+				Load-GitService "https://$env:GITLAB_HOST/api/v4/projects?$_&per_page=100&page=$page"
 			}
 
 			$repositories | % {
@@ -202,7 +210,9 @@ if ($scan) {
 				$identifier = gitselect -github { $repository.name } -gitlab { $repository.id }
 				if ($shared_repositories.Contains($identifier)) { return }
 
-				$repository.url = gitselect -github { $repository.ssh_url } -gitlab { $repository.ssh_url_to_repo }
+				$url = gitselect -github { $repository.ssh_url } -gitlab { $repository.ssh_url_to_repo }
+				Add-Member -InputObject $repository -NotePropertyName "url" -NotePropertyValue $url -Force
+
 				$repositories_all[$repository.id] = $repository
 			}
 
