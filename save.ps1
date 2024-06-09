@@ -98,7 +98,7 @@ function AddAndCommit($message, $filenames) {
 }
 
 Function GetPrevMessages([int]$count) {
-    git log --pretty=format:%B | ? { $_ -and !$_.StartsWith("Merge branch") -and $_ -notmatch '^\d+\.\d+\.\d+$' } | Select -First $count
+    return @(git log --pretty=format:%B) | ? { $_ -and !$_.StartsWith("Merge branch") -and $_ -notmatch '^\d+\.\d+\.\d+$' } | Select -First $count
 }
 
 repo -name $name -quiet:$quiet -action {
