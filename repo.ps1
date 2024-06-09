@@ -152,23 +152,38 @@ $repositories | % {
     }
 }
 
-Function GetCandidate($name) {
+Function GetCandidates($name) {
     $startsWith = @($repositories | ? { $_.name.StartsWith($name) -or $_.name.EndsWith($name) })
-    if ($startsWith.Count -eq 1) {
-        return $startsWith[0]
+    if ($startsWith.Count -gt 0) {
+        return $startsWith
     }
 
     Import-Module $env:MODULES_ROOT\levenshtein.ps1 -Force
-    $closest = GetClosest $name $repositories "name"
-    if ($closest.GetType().BaseType -eq [System.Array]) { $closest = $closest[0] }
-    return $closest
+    return [Array](GetAllClosest $name $repositories "name")
 }
 
 if (!$found) {
-    $candidate = GetCandidate -name $name
+    $candidates = [Array](GetCandidates -name $name)
 
-    # if (confirm "Did you mean {Green:$($candidate.name)}") {
+    $candidate = if ($candidates.Length -eq 1) {
+        $candidates[0]
+    } else {
+        $i = 0
+        $selected = $null
+
+        do {
+            if (confirm "Did you mean {Green:$($candidates[$i].name)}") {
+                $selected = $candidates[$i]
+                break
+            }
+
+            $i++
+            $i = $i % $candidates.Length
+        } while ($true)
+
+        $selected
+    }
+
         [Environment]::SetEnvironmentVariable("RECENT_REPO", $candidate.name, "Process")
         InvokeRepo $candidate
-    # }
 }
