@@ -66,6 +66,10 @@ repo -name $name -quiet:$quiet -action {
         }
     }
 
+    if ($branch -ne "local" -and ($branches | ? { $_ -eq "local" })) {
+        git merge local
+    }
+
     $branches | ? {$_ -ne $branch -and $_ -ne $default_branch} | % {
         PrintBranch $_ -warn
     }
