@@ -46,7 +46,7 @@ repo -name this -quiet:$quiet -action {
         out "{Green:Push merge request} {Yellow:$temp_branch}"
         $message = $temp_branch
         if ($env:GIT_DEFAULT_PROJECT) { $message = "$($env:GIT_DEFAULT_PROJECT)-0 $message" }
-        save -message $message -nomerge -push -mr -draft -quiet:$quiet
+        save -message $message -merge none -push -mr -draft -quiet:$quiet
         mr
     }
 
