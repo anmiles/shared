@@ -153,7 +153,7 @@ $repositories | % {
 }
 
 Function GetCandidates($name) {
-    $startsWith = @($repositories | ? { $_.name.StartsWith($name) -or $_.name.EndsWith($name) })
+    $startsWith = @($repositories | ? { $_.name.Contains($name) })
     if ($startsWith.Count -gt 0) {
         return $startsWith
     }
