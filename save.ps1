@@ -15,10 +15,10 @@
     Apply script only for specified repository name or for current working directory if nothing specified, or apply for all repositories if "all" specified
 .PARAMETER message
     Commit message
+.PARAMETER merge
+    Whether to pull changes from default branch and ask to merge: "none" - never; "mine" - if current branch is mine; "all" - always
 .PARAMETER quiet
     Whether to not output current repository and branch name
-.PARAMETER nomerge
-    Whether to suppress asking for merge with default branch
 .PARAMETER empty
     Whether to allow empty commits
 .PARAMETER request
@@ -48,9 +48,9 @@
 Param (
     [string]$name,
     [string]$message,
+    [ValidateSet('none', 'mine', 'all')][string]$merge = "none",
     [switch]$quiet,
     [switch]$empty,
-    [switch]$nomerge = $true,
     [switch]$request,
     [switch]$draft,
     [switch]$push,
@@ -67,6 +67,8 @@ $commit_message_pattern = switch($env:COMMIT_MESSAGE_STRICT) {
 }
 
 $min_length = 3
+
+$username = $(git config --get user.name)
 
 function AddAndCommit($message, $filenames) {
     if ($filenames -is [String]) {
@@ -102,6 +104,10 @@ Function GetPrevMessages([int]$count) {
 }
 
 repo -name $name -quiet:$quiet -action {
+    if (git for-each-ref --format='%(authorname) %09 %(refname)' | grep $branch | grep $username) {
+        $push = $true
+    }
+
     $commands = @(
         "git log --format=format:%H origin/$branch..$branch",
         "git status --short --untracked-files --renames",
@@ -264,7 +270,7 @@ repo -name $name -quiet:$quiet -action {
             git commit -m $escaped_message $allow_empty
         }
 
-        if ($branch -ne $default_branch -and $unmerged -eq 0 -and !$nomerge -and (confirm "Do you want to merge {{$default_branch}} into {{$branch}}")) {
+        if ($branch -ne $default_branch -and $unmerged -eq 0 -and (($merge -eq "all") -or ($merge -eq "mine" -and (git for-each-ref --format='%(authorname) %09 %(refname)' | grep "origin/$branch" | grep $username))) -and (confirm "Do you want to merge {{$default_branch}} into {{$branch}}")) {
             ChangeBranch $default_branch
             git pull
             ChangeBranch $branch

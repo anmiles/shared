@@ -7,12 +7,12 @@
     Apply script only for specified repository name or for current working directory if nothing specified, or apply for all repositories if "all" specified
 .PARAMETER message
     Commit message
+.PARAMETER merge
+    Whether to pull changes from default branch and ask to merge: "none" - never; "mine" - if current branch is mine; "all" - always
 .PARAMETER quiet
     Whether to not output current repository and branch name
-.PARAMETER nomerge
-    Whether to suppress asking for merge with default branch
 .EXAMPLE
-    load 
+    load
     # load repository in the current directory
 .EXAMPLE
     load this
@@ -31,8 +31,8 @@
 Param (
     [string]$name,
     [string]$message,
-    [switch]$quiet,
-    [switch]$nomerge = $true
+    [ValidateSet('none', 'mine', 'all')][string]$merge = "mine",
+    [switch]$quiet
 )
 
 Function Pull {
@@ -42,8 +42,12 @@ Function Pull {
     check-packages . $prev_commit
 }
 
+$username = $(git config --get user.name)
+
 repo -name $name -quiet:$quiet -action {
-    if ($nomerge) {
+    $branches = git branch --format "%(refname:short)"
+
+    if (($merge -eq "none") -or ($merge -eq "mine" -and !(git for-each-ref --format='%(authorname) %09 %(refname)' | grep "origin/$branch" | grep $username))) {
         Pull
     } else {
         if ($branch -ne $default_branch) {
@@ -55,14 +59,14 @@ repo -name $name -quiet:$quiet -action {
         if ($branch -ne $default_branch) {
             ChangeBranch $branch
             Pull
-            
+
             if ($message -eq "merge" -or (confirm "Do you want to merge {{$default_branch}} into {{$branch}}")) {
                 git merge $default_branch
             }
         }
     }
 
-    $(git branch --format "%(refname:short)") | ? {$_ -ne $branch -and $_ -ne $default_branch} | % {
+    $branches | ? {$_ -ne $branch -and $_ -ne $default_branch} | % {
         PrintBranch $_ -warn
     }
 }
