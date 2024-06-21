@@ -46,8 +46,9 @@ $username = $(git config --get user.name)
 
 repo -name $name -quiet:$quiet -action {
     $branches = git branch --format "%(refname:short)"
+    $is_my_branch = git for-each-ref --format='%(authorname) %09 %(refname)' | grep $branch | grep $username
 
-    if (($merge -eq "none") -or ($merge -eq "mine" -and !(git for-each-ref --format='%(authorname) %09 %(refname)' | grep "origin/$branch" | grep $username))) {
+    if (($merge -eq "none") -or ($merge -eq "mine" -and !$is_my_branch)) {
         Pull
     } else {
         if ($branch -ne $default_branch) {
@@ -66,7 +67,7 @@ repo -name $name -quiet:$quiet -action {
         }
     }
 
-    if ($branch -ne "local" -and ($branches | ? { $_ -eq "local" })) {
+    if ($is_my_branch -and $branch -ne "local" -and ($branches | ? { $_ -eq "local" })) {
         git merge local
     }
 
