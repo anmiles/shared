@@ -104,9 +104,7 @@ Function GetPrevMessages([int]$count) {
 }
 
 repo -name $name -quiet:$quiet -action {
-    if (git for-each-ref --format='%(authorname) %09 %(refname)' | grep $branch | grep $username) {
-        $push = $true
-    }
+    $is_my_branch = git for-each-ref --format='%(authorname) %09 %(refname)' | grep $branch | grep $username
 
     $commands = @(
         "git log --format=format:%H origin/$branch..$branch",
@@ -260,7 +258,7 @@ repo -name $name -quiet:$quiet -action {
         }
     }
 
-    if ($request -or ($unpushed -and $push)) {
+    if ($request -or ($unpushed -and ($push -or $is_my_branch))) {
         if ($squash -and $unpushed -gt 1) {
             $messages = git log --format=format:%s --reverse origin/$branch..$branch
             $aggregated_message = SquashMessages $messages
@@ -270,7 +268,7 @@ repo -name $name -quiet:$quiet -action {
             git commit -m $escaped_message $allow_empty
         }
 
-        if ($branch -ne $default_branch -and $unmerged -eq 0 -and (($merge -eq "all") -or ($merge -eq "mine" -and (git for-each-ref --format='%(authorname) %09 %(refname)' | grep "origin/$branch" | grep $username))) -and (confirm "Do you want to merge {{$default_branch}} into {{$branch}}")) {
+        if ($branch -ne $default_branch -and $unmerged -eq 0 -and (($merge -eq "all") -or ($merge -eq "mine" -and $is_my_branch)) -and (confirm "Do you want to merge {{$default_branch}} into {{$branch}}")) {
             ChangeBranch $default_branch
             git pull
             ChangeBranch $branch
