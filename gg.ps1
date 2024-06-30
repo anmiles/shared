@@ -56,7 +56,8 @@ Param (
 )
 
 if ($env:WSL_ROOT) {
-    $cmd = "gg -file_pattern '$file_pattern' -text_pattern '$text_pattern' -format '$format' -mockFile '$mockFile'"
+	$exec = shpath -native (Join-Path $PSScriptRoot gg.sh)
+	$cmd = "$exec -file_pattern '$file_pattern' -text_pattern '$text_pattern' -format '$format' -mockFile '$mockFile'"
     if ($value) { $cmd += " -value" }
     sh $cmd
     exit
