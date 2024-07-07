@@ -58,8 +58,6 @@ Param (
     [switch]$minor
 )
 
-if ($name -eq "all") { $push = $true }
-
 $commit_message_example = "ABC-123 Description"
 $commit_message_pattern = switch($env:COMMIT_MESSAGE_STRICT) {
     "1" { "^([A-Z]+\-\d+) [^$]" }
