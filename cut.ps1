@@ -138,7 +138,7 @@ if ($concat) {
     file $list_filename $input_content
 } else {
     $ffprobe = $(ffprobe -v error -show_entries stream=width,height,duration -of csv=s=,:p=0 $input_filename) | ? { $_ -ne "N/A" } | Sort
-    $duration = [int]($ffprobe | ? {$_ -notmatch ","})
+    $duration = [int]($ffprobe | ? { $_ -match "^\d+(\.\d+)?$" })
     if (!$duration) { $duration = [int]((($ffprobe | ? {$_ -match ","}) -split ",")[2]) }
     $width_original = [int]((($ffprobe | ? {$_ -match ","}) -split ",")[0])
     $height_original = [int]((($ffprobe | ? {$_ -match ","}) -split ",")[1])
