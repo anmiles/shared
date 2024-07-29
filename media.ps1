@@ -220,6 +220,10 @@ Function ConfirmRename($file, $date, $taken, $diff) {
 			$sign = "+"
 		}
 
+		if ([Math]::Abs($diff.TotalSeconds) -le 2) {
+			$answer = $true
+		}
+
 		$diffSuffix = " ({Cyan:$sign$($diff.TotalSeconds)} seconds)"
 	}
 
