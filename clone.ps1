@@ -41,46 +41,58 @@ Param (
     [switch]$test
 )
 
-$git_host = gitselect -github { "github.com" } -gitlab { if ($env:GITLAB_HOST) { $env:GITLAB_HOST } else { "gitlab.com" } }
-$git_user = gitselect -github { $env:GITHUB_USER } -gitlab { $env:GITLAB_USER }
-
-Function Normalize($name) {
-    if ($name -match '^https?://(.+?)/(?:(.+)/)?(.+)\.git$') {
-        $source = $name
-        $prefix = $matches[2]
-        $name = $matches[3]
-        return @($name, $prefix, $source)
-    }
-
-    if ($name -match '^https?://(.+?)/(?:(.+)/)?(.+)$') {
-        $_host = $matches[1]
-        $prefix = $matches[2]
-        $name = $matches[3]
-        $source = "git@$($_host):$prefix/$name.git"
-        return @($name, $prefix, $source)
-    }
-
-    if ($name -match '^git@(.+?):(?:(.+)/)?(.+?)\.git$') {
-        $source = $name
-        $prefix = $matches[2]
-        $name = $matches[3]
-        return @($name, $prefix, $source)
-    }
-
-    if ($name -match '^(.+)\/(.+?)$') {
-        $source = $name
-        $prefix = $matches[1]
-        $name = $matches[2]
+$git_default_host = gitselect -github {
+    "github.com"
+} -gitlab {
+    if ($env:GITLAB_HOST) {
+        $env:GITLAB_HOST
     } else {
-        $prefix = $git_user
+        "gitlab.com"
     }
-
-    $source = "git@$($git_host):$prefix/$name.git"
-    return @($name, $prefix, $source)
 }
 
-$name, $prefix, $source = Normalize $name
-$destination_name = gitselect -github { $name } -gitlab { if ($prefix -eq $git_user) { $name } else { "$prefix/$name" } }
+$git_default_user = gitselect -github {
+    $env:GITHUB_USER
+} -gitlab {
+    if ($private) {
+        $env:GITLAB_USER
+    } else {
+        $env:GITLAB_GROUP
+    }
+}
+
+Function Normalize($name) {
+    if ($name -match '^https?://(.+?)/(.+?)/(.+?)(\.git)?$') {
+        $git_host = $matches[1]
+        $git_user = $matches[2]
+        $destination_name = $matches[3]
+
+        $source = if ($git_host -eq $git_default_host) {
+            "git@$($git_host):$git_user/$destination_name.git"
+        } else {
+            if ($matches[4]) {
+                $name
+            } else {
+                "$name.git"
+    }
+    }
+
+        return @($destination_name, $source)
+    }
+
+    if ($name -match '^git@(.+?):(.+?)/(.+?)\.git$') {
+        $destination_name = $matches[3]
+        $source = $name
+        return @($destination_name, $source)
+    }
+
+    $destination_name = $name
+    $source = "git@$($git_default_host):$git_default_user/$name.git"
+    return @($destination_name, $source)
+}
+
+$destination_name, $source = Normalize $name
+$name = ($destination_name -split "/") | Select -Last 1
 
 if ($test) {
     @($name, $destination_name, $source)

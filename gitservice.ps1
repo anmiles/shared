@@ -77,12 +77,30 @@ if ($scan -or $get) {
 	}
 }
 
+$git_default_host = gitselect -github {
+    "github.com"
+} -gitlab {
+    if ($env:GITLAB_HOST) {
+        $env:GITLAB_HOST
+    } else {
+        "gitlab.com"
+    }
+}
+
 if ($scan -or $load -or $exec) {
 	[System.Net.ServicePointManager]::SecurityProtocol = 'Tls12'
 	Write-Host "Getting access token..."
-	$token_variable = "$($service)_token_$($token)_$($user)"
+
+	$token_suffix = if ($env:GIT_SERVICE -eq "gitlab" -and $env:GITLAB_HOST) {
+		"_$($env:GITLAB_HOST -split '[^A-Za-z0-9]+' -join '_')"
+	} else {
+		""
+	}
+
+	$token_variable = "$($service)_token_$($token)_$($user)$($token_suffix)"
 	vars -op $env:OP_USER -aws $env:AWS_PROFILE -names $token_variable -silent
 	$token_value = Get-Variable -Name $token_variable -Value
+	if (!$token_value) { throw "$token_variable missing" }
 
 	$headers = gitselect -github { @{
 		"Accept" = "application/vnd.github+json"
@@ -125,7 +143,9 @@ Function Get-Remote($this_repo) {
 		$remote_name = git -C $this_repo config "branch.$branch.remote"
 
 		if (!$remote_name) {
-			if ((git -C $this_repo config --list) -match 'remote\.(.*)\.url=') {
+			$remote_line = $(git -C $this_repo config --list) -match 'remote\.(.*)\.url='
+
+			if ($remote_line -match 'remote\.(.*)\.url=') {
 				$remote_name = $matches[1]
 			} else {
 				$remote_name = $default_remote_name
@@ -157,7 +177,7 @@ if ($scan) {
 		Write-Host "Scanning local repositories..."
 
 		Get-ChildItem $env:LOCAL_REPOSITORIES_ROOT -Directory | % {
-			$id = $_.FullName
+			$id = shpath $_.FullName -native
 			$default_branch = git -C $_.FullName rev-parse --abbrev-ref HEAD
 
 			$repositories_all[$id] = @{
@@ -175,9 +195,9 @@ if ($scan) {
 		if ($repo -eq "all") {
 			$shared_repositories | % {
 				$repository = gitselect -github {
-					Load-GitService "https://api.github.com/repos/$user/$_"
+					Load-GitService "https://$git_default_host/repos/$user/$_"
 				} -gitlab {
-					Load-GitService "https://$env:GITLAB_HOST/api/v4/projects/$_"
+					Load-GitService "https://$git_default_host/api/v4/projects/$_"
 				}
 
 				$repository.url = gitselect -github { $repository.ssh_url } -gitlab { $repository.ssh_url_to_repo }
@@ -200,9 +220,9 @@ if ($scan) {
 
 		do {
 			$repositories = gitselect -github {
-				Load-GitService "https://api.github.com/user/repos" -data @{ per_page = 100; page = $page }
+				Load-GitService "https://$git_default_host/user/repos" -data @{ per_page = 100; page = $page }
 			} -gitlab {
-				Load-GitService "https://$env:GITLAB_HOST/api/v4/projects?$_&per_page=100&page=$page"
+				Load-GitService "https://$git_default_host/api/v4/projects?$_&per_page=100&page=$page"
 			}
 
 			$repositories | % {
