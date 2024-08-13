@@ -26,10 +26,11 @@ repo -name this -quiet:$quiet -action {
 		if ($scopes.Count) { $scopes = "&" + (($scopes | % { "scope[]=$_" }) -join "&") }
 		else {$scopes = "" }
 		$page = 1
+		$limit = 100
 		$all_jobs = @()
 
 		do {
-			$url = "https://$env:GITLAB_HOST/api/v4/projects/$repository_id/jobs?per_page=100&page=$page" + $scopes
+			$url = "https://$env:GITLAB_HOST/api/v4/projects/$repository_id/jobs?per_page=$limit&page=$page" + $scopes
 			$page ++
 			Write-Host "Load $url " -NoNewline
 			$data = Load-GitService $url
@@ -43,7 +44,7 @@ repo -name this -quiet:$quiet -action {
 		return $all_jobs
 	}
 
-	$all_jobs | Sort name, id | % {
+	$all_jobs | Sort name, @{Expression={$_.id}; Descending=$true} | % {
 		$job = $_
 		$job.pipeline.ref -match 'refs/merge-requests/(\d+)' | Out-Null
 
