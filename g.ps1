@@ -13,6 +13,8 @@
 	Whether to mock file system (for test purposes)
 .PARAMETER value
 	Return value of the first matched group. Not applicable if format == 'files' or text_pattern missing
+.PARAMETER allowJS
+	Whether to allow search in JS files (otherwise - TS files only)
 .EXAMPLE
 	g 'import \{(.+)\}'
 	# get all named imports in js/ts files
@@ -41,11 +43,15 @@ Param (
 	[string]$text_pattern,
 	[ValidateSet('text', 'files', 'lines', 'json')][string]$format = "text",
 	[string]$mockFile,
-	[switch]$value
+	[switch]$value,
+	[switch]$allowJS
 )
 
 repo all -quiet {
-	$results = gg -file_pattern '\.[cm]?[jt]sx?$' -text_pattern $text_pattern -format $format -mockFile $mockFile -value:$value
+	$ext_pattern = switch($allowJS) { $true { "[jt]s" } $false { "ts" }}
+	$file_pattern = ('\.[cm]?' + $ext_pattern + 'x?$')
+
+	$results = gg -file_pattern $file_pattern -text_pattern $text_pattern -format $format -mockFile $mockFile -value:$value
 
 	if ($results) {
 		out $repo Yellow
