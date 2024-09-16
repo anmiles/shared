@@ -78,7 +78,7 @@ if ($scan -or $get) {
 }
 
 $git_default_host = gitselect -github {
-    "github.com"
+    "api.github.com"
 } -gitlab {
     if ($env:GITLAB_HOST) {
         $env:GITLAB_HOST
