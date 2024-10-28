@@ -215,7 +215,7 @@ if (!$hstack -and !$vstack) {
         $params += "-an"
     } else {
         if ($acopy) { $params += @("-acodec", "copy") }
-        else { $params += @("-acodec", "mp3", "-b:a", "320k", "-ar", "44100") }
+        else { $params += @("-acodec", "aac", "-b:a", "320k", "-ar", "44100") }
     }
 
     if ($length) { $params += @("-t", $length) }
