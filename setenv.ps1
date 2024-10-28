@@ -3,23 +3,6 @@
     Sets the environment variables for current workspace
 #>
 
-$scripts_shared = $PSScriptRoot
-$scripts_root = Split-Path $scripts_shared -Parent
-$root = $MyInvocation.PSScriptRoot
-$terraform_root = Join-Path (Split-Path $scripts_root -Parent) "terraform"
-
-$vars = @{}
-$vars.ENV_FILE = Join-Path $root "env.json"
-$vars.ENV_REPOSITORIES_FILE = Join-Path $root "env.repositories.json"
-
-if (Test-Path $vars.ENV_FILE) {
-    $json = Get-Content $vars.ENV_FILE | ConvertFrom-Json
-
-    $json.PSObject.Properties | % {
-        $vars[$_.Name] = $_.Value
-    }
-}
-
 Function global:ex([switch]$confirm, [switch]$return) {
     if ($exitCode = $lastExitCode) {
         if ($confirm) {
@@ -177,6 +160,23 @@ function global:whereami($text = (Get-PSCallStack)[0].Command) {
     Write-Host (fmt "$(Get-Location) * $text" "DarkGray")
 }
 
+$scripts_shared = $PSScriptRoot
+$scripts_root = Split-Path $scripts_shared -Parent
+$root = $MyInvocation.PSScriptRoot
+$terraform_root = Join-Path (Split-Path $scripts_root -Parent) "terraform"
+
+$vars = @{}
+$vars.ENV_FILE = Join-Path $root "env.json"
+$vars.ENV_REPOSITORIES_FILE = Join-Path $root "env.repositories.json"
+
+if (Test-Path $vars.ENV_FILE) {
+    $json = Get-Content $vars.ENV_FILE | ConvertFrom-Json
+
+    $json.PSObject.Properties | % {
+        $vars[$_.Name] = $_.Value
+    }
+}
+
 $paths = [System.Collections.ArrayList]($env:PATH -split ";")
 $sourcePaths = @()
 
@@ -187,18 +187,17 @@ if ($env:WSL_COMMANDS) {
         $vars.WSL_COMMANDS = @()
     }
 
-    $vars.WSL_COMMANDS | % {
-        $commands = Get-Command $_ -All -ErrorAction SilentlyContinue
+    $commands = @{}
+    Get-Command | % { $commands[$_.Name] = $_.Source }
 
-        if ($commands) {
-            $commands.Source | ? { $_ } | % {
-                $sourcePath = Split-Path $_ -Parent
+    $vars.WSL_COMMANDS | % {
+        if ($commands[$_]) {
+            $sourcePath = Split-Path $commands[$_].Source -Parent
                 $sourcePaths += $sourcePath
                 $sourcePaths += "$sourcePath\"
             }
         }
     }
-}
 
 $vars.WSL_COMMANDS | % {
     iex "function global:$_(){wsh $_ `$args}"
