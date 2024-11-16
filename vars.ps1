@@ -67,11 +67,11 @@ if ($op) {
 
     $names | % {
         if (!$op_disabled) {
-            $result = exec op "item get $_ --fields label=password"
+            $result = exec op "item get $_ --fields label=password --reveal"
 
             if ($result.err.Contains("op signin") -or $result.err.Contains("sign in")) {
                 iex $(Get-Content $env:OP_CODE | op signin --account $op)
-                $result = exec op "item get $_ --fields label=password"
+                $result = exec op "item get $_ --fields label=password --reveal"
             }
         }
 
