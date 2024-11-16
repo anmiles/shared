@@ -38,7 +38,7 @@ $quiz = $combinations | Sort-Object | Get-Unique | Get-Random -Count $combinatio
 cls
 [console]::CursorVisible = $false
 
-$progress = Start-Progress -count $quiz.Length -length ($quiz.Length + 7)
+$progress = Start-Progress -count $quiz.Length -length ($quiz.Length + 7) -fill '*' -fillColor 'DarkYellow'
 
 $quiz | % {
     [void](Read-Host)
