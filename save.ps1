@@ -290,17 +290,15 @@ repo -name $name -quiet:$quiet -action {
                 $message = ask -value $prev_message -old "Prev commit message" -new "Next commit message" -append
             }
 
-            $escaped_message = $message -replace '"', "'" -replace '\$', '\$'
+            $request_name = $branch.Replace("-", " ")
 
             if ($draft) {
-                $arguments += "-o merge_request.title=`"Draft: $escaped_message`""
-                # $arguments += "-o merge_request.label=`"do not merge`""
+                $arguments += "-o merge_request.title=`"Draft: $request_name`""
             } else {
-                $arguments += "-o merge_request.title=`"$escaped_message`""
+                $arguments += "-o merge_request.title=`"$request_name`""
 
                 if ((Test-Path -Type Container $repo/.git) -and $commit_message_pattern) {
                     $issue = [Regex]::Matches($message, $commit_message_pattern).Groups[1].Value
-                    $arguments += "-o merge_request.description=`"\[$issue\]`""
                 }
             }
 
