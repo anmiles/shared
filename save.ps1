@@ -290,7 +290,8 @@ repo -name $name -quiet:$quiet -action {
                 $message = ask -value $prev_message -old "Prev commit message" -new "Next commit message" -append
             }
 
-            $request_name = $branch.Replace("-", " ")
+            $request_name = [Regex]::Replace($branch, '(^.*?\d+)(.*)$', { param($match) $match.Groups[1].Value + $match.Groups[2].Value.Replace("-", " ") }, 'IgnoreCase')
+            # $request_name = ask -new "Request name"
 
             if ($draft) {
                 $arguments += "-o merge_request.title=`"Draft: $request_name`""
