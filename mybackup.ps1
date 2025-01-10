@@ -21,12 +21,12 @@ $status = @{ value = "run script" }
 
 Function ShowError($message){
     Get-Command push 2>&1 | Out-Null
-    $message += " when $($status.Value)"
+    $err = "Error '$message' when $($status.value)"
 
     if ($?) {
-        push -title mybackup -message $message -status error
+        push -title mybackup -message $err -status error
     } else {
-        Write-Host $message -ForegroundColor Red
+        Write-Host $err -ForegroundColor Red
     }
 }
 
@@ -73,15 +73,37 @@ try {
         exit
     }
 
-    Write-Host "Executing tasks [before]..." -ForegroundColor Green
-    $config.tasks.ChildNodes | ? { $_.LocalName -ne "#comment" -and $_.when -eq "before" } | % {
-        $name = $_.name
-        Write-Host "    > $name"
-        $status.Value = "execute before task $name..."
-        Push-Location $_.path
-        iex $_.command
-        Pop-Location
+    Function ExecuteTasks($when) {
+        $config.tasks.ChildNodes | ? { $_.LocalName -ne "#comment" -and $_.when -eq $when } | % {
+            $name = $_.name
+            Write-Host "    > $name"
+
+            if ($_.format) {
+                $file = ([regex]"\{(.*)\}").Replace($_.format, {(Get-Date).ToString($args[0].Groups[1])})
+                $_.command = $_.command.Replace('$FILE', $file)
+            }
+
+            $status.Value = "execute $when task $name..."
+
+            Push-Location $_.path
+            iex $_.command
+            RemoveExpired($_.expiredays)
+            Pop-Location
+        }
     }
+
+    Function RemoveExpired($path, $days) {
+        if ($days) {
+            $expireDate = (Get-Date).AddDays(-[int]$days)
+
+            Get-ChildItem $path | ? { $_.LastWriteTime -lt $expireDate } | % {
+                $status.Value = "remove expired backup $($_.FullName)"
+                Remove-Item $_.FullName -Force
+            }
+        }
+    }
+
+    ExecuteTasks("before")
 
     Write-Host "Copying items..." -ForegroundColor Green
     $status.Value = "start copy"
@@ -135,15 +157,7 @@ try {
         $dstPath = Join-Path $_.path $dstName
 
         try {
-            if ($_.expiredays) {
-                $expireDate = (Get-Date).AddDays(-[int]$_.expiredays)
-
-                $status.Value = "remove expired backup $($_.path)"
-                Get-ChildItem $_.path | ? { $_.Name.EndsWith($extension) -and $_.LastWriteTime -lt $expireDate } | % {
-                    Remove-Item $_.FullName -Force
-                }
-            }
-
+            RemoveExpired($_.expiredays)
             $status.Value = "copy backup $tmpZip to $dstPath"
             Copy-Item $tmpZip $dstPath
         } catch {
@@ -158,15 +172,7 @@ try {
     Remove-Item $tmpZip -Force -Recurse
     Remove-Item $tmpRoot -Force -Recurse
 
-    Write-Host "Executing tasks [after]..." -ForegroundColor Green
-    $config.Tasks.ChildNodes | ? { $_.LocalName -ne "#comment" -and $_.when -eq "after" } | % {
-        $name = $_.name
-        Write-Host "    > $name"
-        $status.Value = "execute after task $name..."
-        Push-Location $_.path
-        iex $_.command
-        Pop-Location
-    }
+    ExecuteTasks("after")
 
     Write-Host "Done!" -ForegroundColor Green
 } catch {
