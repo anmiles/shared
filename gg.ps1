@@ -17,6 +17,8 @@
     Whether to mock file system (for test purposes)
 .PARAMETER value
     Return value of the first matched group. Not applicable if format == 'files' or text_pattern missing
+.PARAMETER ps1
+	Whether to use native gg.ps1 even if WSL is available
 .EXAMPLE
     gg '\.ts$'
     # search all *.ts files
@@ -52,10 +54,11 @@ Param (
     [string]$text_pattern,
     [ValidateSet('text', 'files', 'lines', 'json')][string]$format = "text",
     [string]$mockFile,
-    [switch]$value
+	[switch]$value,
+	[switch]$ps1
 )
 
-if ($env:WSL_ROOT) {
+if ($env:WSL_ROOT -and !$ps1) {
 	$exec = shpath -native (Join-Path $PSScriptRoot gg.sh)
 	$cmd = "$exec -file_pattern '$file_pattern' -text_pattern '$text_pattern' -format '$format' -mockFile '$mockFile'"
     if ($value) { $cmd += " -value" }
