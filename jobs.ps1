@@ -46,7 +46,6 @@ repo -name this -quiet:$quiet -action {
 
 	$all_jobs | Sort name, @{Expression={$_.id}; Descending=$true} | % {
 		$job = $_
-		$job.pipeline.ref -match 'refs/merge-requests/(\d+)' | Out-Null
 
 		if ($job.created_at) { $created = [DateTime]::Parse($job.created_at).ToString() }
 		if ($job.started_at) { $started = [DateTime]::Parse($job.started_at).ToString() }
@@ -69,7 +68,7 @@ repo -name this -quiet:$quiet -action {
 			Duration = "$([int]$job.duration)";
 			Author = $job.user.username;
 			Pipeline = $job.pipeline.id.toString();
-			MR = $matches[1];
+			Ref = $job.pipeline.ref;
 			Created = $created;
 			Started = $started;
 			Finished = $finished
@@ -81,7 +80,7 @@ repo -name this -quiet:$quiet -action {
 		@{Label = "Duration"; Expression = {$_.Duration}},
 		@{Label = "Author"; Expression = {$_.Author}},
 		@{Label = "Pipeline"; Expression = {$_.Pipeline}},
-		@{Label = "MR"; Expression = {$_.MR}},
+		@{Label = "Ref"; Expression = {$_.Ref}},
 		@{Label = "Created"; Expression = {$_.Created}},
 		@{Label = "Started"; Expression = {$_.Started}},
 		@{Label = "Finished"; Expression = {$_.Finished + [char]27 + "[0m"}}
