@@ -87,12 +87,12 @@ try {
 
             Push-Location $_.path
             iex $_.command
-            RemoveExpired($_.expiredays)
+            RemoveExpired -path $_.path -days $_.expiredays
             Pop-Location
         }
     }
 
-    Function RemoveExpired($path, $days) {
+    Function RemoveExpired($path, [int]$days) {
         if ($days) {
             $expireDate = (Get-Date).AddDays(-[int]$days)
 
@@ -103,7 +103,7 @@ try {
         }
     }
 
-    ExecuteTasks("before")
+    ExecuteTasks "before"
 
     Write-Host "Copying items..." -ForegroundColor Green
     $status.Value = "start copy"
@@ -157,7 +157,7 @@ try {
         $dstPath = Join-Path $_.path $dstName
 
         try {
-            RemoveExpired($_.expiredays)
+            RemoveExpired -path $_.path -days $_.expiredays
             $status.Value = "copy backup $tmpZip to $dstPath"
             Copy-Item $tmpZip $dstPath
         } catch {
@@ -172,7 +172,7 @@ try {
     Remove-Item $tmpZip -Force -Recurse
     Remove-Item $tmpRoot -Force -Recurse
 
-    ExecuteTasks("after")
+    ExecuteTasks "after"
 
     Write-Host "Done!" -ForegroundColor Green
 } catch {
