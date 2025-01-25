@@ -26,9 +26,36 @@ Param (
     [switch]$quiet
 )
 
-Function GetNewBranches ($branch, $branches, $quiet) {
-    $branches = git branch --format "%(refname:short)" | grep -v "(HEAD detached at "
+$repositories = gitservice -get all
 
+Function InGit {
+    if (!$pwd.Path.StartsWith($env:GIT_ROOT)) { return $false }
+    $relativePath = shpath $pwd.Path.Replace("$env:GIT_ROOT\", "")
+    return $repositories | ? { $relativePath.StartsWith($_.local) }
+}
+
+if (InGit) {
+    $commands = @(
+        "git rev-parse --abbrev-ref HEAD",
+        "git branch --format '%(refname:short)' | grep -v '(HEAD detached at '",
+        "git rev-parse --show-toplevel"
+    )
+
+    if ($env:WSL_ROOT) {
+        $command = $commands -join " && echo '\0' && "
+        $result = sh $command
+    } else {
+        $command = $commands -join " ; echo `"`0`" ; "
+        $result = iex $command
+    }
+
+    $branch, $branches, $fullpath = $result -join "`n" -split "`n`0`n"
+    $branches = $branches -split "`n"
+} else {
+    $branch, $branches, $fullpath = @($null, @(), $null)
+}
+
+Function GetNewBranches ($branch, $branches, $quiet) {
     if ($new_branch -eq $null) {
         return ,@($branch)
     }
@@ -85,7 +112,6 @@ Function PrintBranch {
 
 Function ChangeBranch($name, [switch]$quiet) {
     if (!$quiet) { PrintBranch $name -next }
-    $branch = git rev-parse --abbrev-ref HEAD
     if ($branch -eq $name) { return }
     git checkout $name
 }
@@ -106,12 +132,16 @@ Function InvokeRepo($repository) {
     }
 
     Push-Location $repo
+    $shrepo = shpath -native:(!!$env:WSL_ROOT) $repo
 
-    $branch = git rev-parse --abbrev-ref HEAD
+    if ($shrepo -ne $fullpath) {
+        $branch = git rev-parse --abbrev-ref HEAD
+    }
+
     if (!$quiet) { PrintBranch $branch }
 
     if ($new_branch -ne $null) {
-        $new_branches = GetNewBranches -branch $branch
+        $new_branches = GetNewBranches -branch $branch -branches $branches
         $new_branch = $new_branches[0]
     }
 
@@ -125,7 +155,6 @@ Function InvokeRepo($repository) {
 }
 
 if (!$name -or $name -eq "this") {
-    $fullpath = git rev-parse --show-toplevel
     if (!$fullpath) { exit }
     $name = Split-Path $fullpath -Leaf
 }
@@ -143,7 +172,7 @@ if ($name -and $name -ne "all" -and $name -ne "it") {
     [Environment]::SetEnvironmentVariable("RECENT_REPO", $name, "Process")
 }
 
-$repositories = gitservice -get all
+$found = $false
 
 $repositories | % {
     if ($name -eq "all" -or $name -eq $_.name) {
@@ -184,6 +213,6 @@ if (!$found) {
         $selected
     }
 
-        [Environment]::SetEnvironmentVariable("RECENT_REPO", $candidate.name, "Process")
-        InvokeRepo $candidate
+    [Environment]::SetEnvironmentVariable("RECENT_REPO", $candidate.name, "Process")
+    InvokeRepo $candidate
 }
