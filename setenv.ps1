@@ -180,9 +180,6 @@ if (Test-Path $vars.ENV_FILE) {
 $paths = [System.Collections.ArrayList]($env:PATH -split ";")
 $sourcePaths = @()
 
-if ($env:WSL_COMMANDS) {
-    $vars.WSL_COMMANDS = $env:WSL_COMMANDS | ConvertFrom-Json
-} else {
     if (!$vars.WSL_COMMANDS) {
         $vars.WSL_COMMANDS = @()
     }
@@ -197,7 +194,6 @@ if ($env:WSL_COMMANDS) {
                 $sourcePaths += "$sourcePath\"
             }
         }
-    }
 
 $vars.WSL_COMMANDS | % {
     iex "function global:$_(){wsh $_ `$args}"
