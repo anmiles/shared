@@ -2,7 +2,7 @@
 .SYNOPSIS
     Wrapper to run npm commands in selected repositories
 .PARAMETER action
-    One of { install | lint | build | test }
+    One of { ci | lint | build | test }
 .PARAMETER lib
     Specific lib to test (if action = test)
 .PARAMETER coverage
@@ -17,10 +17,10 @@
     Whether to not output current repository and branch name
 .EXAMPLE
 	npr
-	# run `npm install`; `npm run lint:fix`; `npm run test`; `npm run build`
+	# run `npm ci`; `npm run lint:fix`; `npm run test`; `npm run build`
 .EXAMPLE
-    npr install
-    # run `npm install`
+    npr ci
+    # run `npm ci`
 .EXAMPLE
     npr lint
     # run `npm run lint:fix`
@@ -33,7 +33,7 @@
 #>
 
 Param (
-    [ValidateSet('', 'install', 'lint', 'test', 'build')][string]$action,
+    [ValidateSet('', 'ci', 'lint', 'test', 'build')][string]$action,
     [string]$lib,
     [Parameter(ValueFromRemainingArguments = $true)][string[]]$specs,
     [switch]$coverage,
@@ -44,7 +44,7 @@ Param (
 )
 
 $actions = @{
-	install = "npm install";
+	ci = "npm ci";
 	lint = "npm run lint:fix";
 	test = "npm run test";
 	build = "npm run build";
