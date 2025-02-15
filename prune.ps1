@@ -21,27 +21,31 @@
 
 Param (
     [string]$name,
-    [switch]$quiet = $true
+    [switch]$quiet
 )
 
 repo -name $name -quiet:$quiet -action {
     $switch = $false
-    ChangeBranch $default_branch
+    if ($branch -ne $default_branch) {
+        $switch = $true
+        ChangeBranch $default_branch
+    }
     git pull
+    if (!$?) { exit 1 }
     git remote update --prune
-
-    git branch --format "%(refname:short)" | % {
-        $remote_branch = git branch -a | grep "remotes/origin/$_"
-        if (!$? -and (confirm "Delete merged branch {{$_}}")) {
+    $locals = git branch --format "%(refname:short)"
+    $remotes = git branch --remote --format  "%(refname:short)"
+    $locals | % {
+        if (!($remotes | grep "origin/$_") -and (confirm "Delete local-only branch {{$_}}")) {
             git branch -D $_
 
             if ($_ -eq $branch) {
-                $switch = $true
+                $switch = $false
             }
         }
     }
 
-    if (!$switch) {
+    if ($switch) {
         ChangeBranch $branch
     }
 }
