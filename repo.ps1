@@ -27,6 +27,7 @@ Param (
 )
 
 $repositories = gitservice -get all
+$current = @{}
 
 Function InGit {
     if (!$pwd.Path.StartsWith($env:GIT_ROOT)) { return $false }
@@ -49,10 +50,10 @@ if (InGit) {
         $result = iex $command
     }
 
-    $branch, $branches, $fullpath = $result -join "`n" -split "`n`0`n"
-    $branches = $branches -split "`n"
+    $current.branch, $current.branches, $current.fullPath = $result -join "`n" -split "`n`0`n"
+    $current.branches = $current.branches -split "`n"
 } else {
-    $branch, $branches, $fullpath = @($null, @(), $null)
+    $current.branch, $current.branches, $current.fullPath = @($null, @(), $null)
 }
 
 Function GetNewBranches ($branch, $branches, $quiet) {
@@ -112,8 +113,9 @@ Function PrintBranch {
 
 Function ChangeBranch($name, [switch]$quiet) {
     if (!$quiet) { PrintBranch $name -next }
-    if ($branch -eq $name) { return }
+    if ($current.branch -eq $name) { return }
     git checkout $name
+    $current.branch = $name
 }
 
 Function InvokeRepo($repository) {
@@ -134,18 +136,21 @@ Function InvokeRepo($repository) {
     Push-Location $repo
     $shrepo = shpath -native:(!!$env:WSL_ROOT) $repo
 
-    if ($shrepo -ne $fullpath) {
-        $branch = git rev-parse --abbrev-ref HEAD
+    if ($shrepo -ne $current.fullPath) {
+        $current.branch = git rev-parse --abbrev-ref HEAD
     }
 
-    if (!$quiet) { PrintBranch $branch }
+    if (!$quiet) { PrintBranch $current.branch }
 
     if ($new_branch -ne $null) {
-        $new_branches = GetNewBranches -branch $branch -branches $branches
+        $new_branches = GetNewBranches -branch $current.branch -branches $current.branches
         $new_branch = $new_branches[0]
     }
 
     try {
+        $branch = $current.branch
+        $branches = $current.branches
+        $fullPath = $current.fullPath
         Invoke-Command $action
     } catch {
         throw $_
@@ -155,8 +160,8 @@ Function InvokeRepo($repository) {
 }
 
 if (!$name -or $name -eq "this") {
-    if (!$fullpath) { exit }
-    $name = Split-Path $fullpath -Leaf
+    if (!$current.fullPath) { exit }
+    $name = Split-Path $current.fullPath -Leaf
 }
 
 if ($name -eq "it") {
