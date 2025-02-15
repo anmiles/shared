@@ -58,9 +58,10 @@ repo -name this -quiet:$quiet -action {
 				"running" { "33" }
 				"failed" { "31" }
 				"success" { "32" }
-				"canceled" { "37" }
-				"skipped" { "37" }
-				default { "38" }
+				"canceled" { "30;1" }
+				"skipped" { "30;1" }
+				"manual" { "34;1" }
+				default { "37" }
 			};
 			Status = $job.status.ToUpper();
 			Name = $job.name;
