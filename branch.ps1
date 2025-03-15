@@ -54,3 +54,13 @@ if (!$force -and !(confirm "Do you really want to create new branch {{$branch_na
 git branch $branch_name
 git checkout $branch_name
 git push --set-upstream origin $branch_name
+
+# TODO: add github support
+gitselect -gitlab {
+    repo this {
+    $request_name = [Regex]::Replace($branch_name, '(^.*?\d+)(.*)$', { param($match) $match.Groups[1].Value + $match.Groups[2].Value.Replace("-", " ") }, 'IgnoreCase')
+        $url = "https://$env:GITLAB_HOST/$env:GITLAB_GROUP/$local/-/merge_requests/new?merge_request[source_branch]=$branch_name&merge_request[target_branch]=$current_branch_name&merge_request[title]=$request_name"
+        out $url Yellow
+        start $url
+    }
+}
