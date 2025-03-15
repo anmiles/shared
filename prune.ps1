@@ -30,11 +30,14 @@ repo -name $name -quiet:$quiet -action {
         $switch = $true
         ChangeBranch $default_branch
     }
-    git pull
-    if (!$?) { exit 1 }
-    git remote update --prune
-    $locals = git branch --format "%(refname:short)"
-    $remotes = git branch --remote --format  "%(refname:short)"
+
+    $pull, $fetch, $locals, $remotes = batch @(
+        "git pull",
+        "git fetch --prune --all",
+        "git branch --format '%(refname:short)'",
+        "git branch --remote --format '%(refname:short)'"
+    )
+
     $locals | % {
         if (!($remotes | grep "origin/$_") -and (confirm "Delete local-only branch {{$_}}")) {
             git branch -D $_
@@ -45,7 +48,9 @@ repo -name $name -quiet:$quiet -action {
         }
     }
 
+    git pull
     if ($switch) {
         ChangeBranch $branch
+        git pull
     }
 }
