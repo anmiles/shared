@@ -218,7 +218,7 @@ if [[ -n "$text_pattern" ]]; then
 							value_str=$(echo "$element" | cut -d: -f2)
 							if [[ "$line_index" -gt "0" ]]; then json_lines+=","; fi
 							if $value; then value_str=$(echo "$element" | sed -r "s/^.*:$text_pattern.*$/\1/i"); fi
-							json_lines+=$(jq -n --indent 0 --arg line $line --arg value "$value_str" '{line: $line|fromjson, value: $value}')
+							json_lines+=$(jq -n --indent 0 --arg line $line --arg value "$value_str" '{line: $line|fromjson, value: $value}' )
 							line_index=$(($line_index+1))
 						done
 					fi
