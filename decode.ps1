@@ -8,6 +8,8 @@
     Destination file where to save decoded base64 string.
 .PARAMETER src
     Source file or archive to decode. If omitted, get text from clipboard
+.PARAMETER marker
+    Optional marker to remove from the beginning of output string
 .EXAMPLE
     encode files.zip
     # base64-encode files.zip and save to files.zip.base64
@@ -18,7 +20,8 @@
 
 Param (
     [string]$src,
-    [string]$dst
+    [string]$dst,
+    [string]$marker = ""
 )
 
 $utf8 = New-Object System.Text.UTF8Encoding $false
@@ -30,7 +33,8 @@ if ($src) {
     $text = Get-ClipBoard -Format Text
 }
 
-$bytes = [Convert]::FromBase64String($text)
+$markerRegex = [regex]::new([regex]::Escape($marker))
+$bytes = [Convert]::FromBase64String([Regex]::Replace($text, "^$markerRegex", ""))
 
 if ($dst) {
     file $dst -bytes $bytes

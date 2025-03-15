@@ -7,9 +7,11 @@
     Can encode image from clipboard
     Can encode file list from clipboard and make an archive from these files
 .PARAMETER src
-    Source file which to base64-encode. If omitted, try to get from clipboard 
+    Source file which to base64-encode. If omitted, try to get from clipboard
 .PARAMETER dst
     Destination file where to save base64 string. If omitted, save to clipboard
+.PARAMETER marker
+    Optional marker to insert in the beginning of output string
 .EXAMPLE
     encode files.zip files.zip.base64
     # base64-encode files.zip and save to files.zip.base64
@@ -23,15 +25,20 @@
 
 Param (
     [string]$src,
-    [string]$dst
+    [string]$dst,
+    [string]$marker = ""
 )
+
+Function ConvertBytes($bytes) {
+    return $marker + [Convert]::ToBase64String($bytes)
+}
 
 $utf8 = New-Object System.Text.UTF8Encoding $false
 
 if ($src) {
     if (!(Test-Path $src)) { throw "File '$($src)' doesn't exist!" }
     $bytes = file $src -bytes
-    $text = [Convert]::ToBase64String($bytes)
+    $text = ConvertBytes($bytes)
 
     if ($dst) {
         file $dst $text
@@ -43,7 +50,7 @@ if ($src) {
     $clipboard = Get-ClipBoard -Format Text
     if ($clipboard) {
         $bytes = $utf8.GetBytes($clipboard)
-        $text = [Convert]::ToBase64String($bytes)
+        $text = ConvertBytes($bytes)
         Set-Clipboard $text
         exit
     }
@@ -53,7 +60,7 @@ if ($src) {
         $tmpfile = Join-Path $env:TEMP ([Guid]::NewGuid().Guid)
         $clipboard.Save($tmpfile)
         $bytes = file $tmpfile -bytes
-        $text = [Convert]::ToBase64String($bytes)
+        $text = ConvertBytes($bytes)
         Set-Clipboard $text
         exit
     }
@@ -65,7 +72,7 @@ if ($src) {
         $clipboard | % { Copy-Item $_ $tmpdir -Force -Recurse }
         $archive = zip $tmpdir
         $bytes = file $archive -bytes
-        $text = [Convert]::ToBase64String($bytes)
+        $text = ConvertBytes($bytes)
         Set-Clipboard $text
         Remove-Item -Force -Recurse $tmpdir
         Remove-Item -Force $archive
