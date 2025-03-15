@@ -36,21 +36,11 @@ Function InGit {
 }
 
 if (InGit) {
-    $commands = @(
+    $current.branch, $current.branches, $current.fullPath = batch @(
         "git rev-parse --abbrev-ref HEAD",
         "git branch --format '%(refname:short)' | grep -v '(HEAD detached at '",
         "git rev-parse --show-toplevel"
     )
-
-    if ($env:WSL_ROOT) {
-        $command = $commands -join " && echo '\0' && "
-        $result = sh $command
-    } else {
-        $command = $commands -join " ; echo `"`0`" ; "
-        $result = iex $command
-    }
-
-    $current.branch, $current.branches, $current.fullPath = $result -join "`n" -split "`n`0`n"
     $current.branches = $current.branches -split "`n"
 } else {
     $current.branch, $current.branches, $current.fullPath = @($null, @(), $null)
@@ -69,11 +59,11 @@ Function GetNewBranches ($branch, $branches, $quiet) {
         $branches = $branches | grep -i $new_branch
     }
 
-    if ($branches -is [string]) {
+    if ($branches -ne $null) {
         return ,@($branches)
     }
 
-    if ($branches -ne $null) {
+    if ($branches -is [array]) {
         return $branches
     }
 

@@ -104,19 +104,12 @@ Function GetPrevMessages([int]$count) {
 repo -name $name -quiet:$quiet -action {
     $is_my_branch = ($branch -ne $default_branch) -and (git for-each-ref --format='%(authorname) %09 %(refname)' | grep "refs/remotes/origin/$branch" | grep $username)
 
-    $commands = @(
+    $unpushed, $uncommitted, $unmerged, $problems = batch @(
         "git log --format=format:%H origin/$branch..$branch",
         "git status --short --untracked-files --renames",
         "git diff --name-status --diff-filter=U",
         "git diff --check"
-    )
-
-    if ($env:WSL_ROOT) {
-        $command = ($commands | % { "$_ | wc -c" }) -join " && "
-        $unpushed, $uncommitted, $unmerged, $problems = sh $command | % { [int]$_ }
-    } else {
-        $unpushed, $uncommitted, $unmerged, $problems = $commands | % { (& cmd "/c $_").Count }
-    }
+    ) | % { $_.Length }
 
     if ($problems -gt 0) {
         git diff --check
