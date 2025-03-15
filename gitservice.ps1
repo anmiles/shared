@@ -129,7 +129,13 @@ Function Load-GitService($url, $method = "GET", $data = @{}) {
 	}
 
 	# Write-Host "Invoke-WebRequest -Method $method -Body $body $url -UseBasicParsing"
-	return (Invoke-WebRequest -Headers $headers -Method $method -Body $body -ContentType "application/json" $url -UseBasicParsing).Content | ConvertFrom-Json
+	$response = Invoke-WebRequest -Headers $headers -Method $method -Body $body -ContentType "application/json" $url -UseBasicParsing
+
+	if ($response.Headers["Content-Type"] -eq "application/json") {
+		return $response.Content | ConvertFrom-Json
+	} else {
+		return $response.Content
+	}
 }
 
 Function Get-Local($this_repo) {
