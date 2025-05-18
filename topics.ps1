@@ -41,6 +41,7 @@ $technologies = @(
 	@{ name = "graphql";		condition = { $packages.Contains("graphql") } }
 	@{ name = "postgres";		condition = { $packages.Contains("postgres") -or $packages.Contains("pg") } }
 	@{ name = "express";		condition = { $packages.Contains("express") } }
+	@{ name = "zod";			condition = { $packages.Contains("zod") } }
 	@{ name = "leaflet";		condition = { $frontend_libs.Contains("leaflet") } }
 	@{ name = "googleapis";		condition = { $packages.Contains("googleapis") } }
 	@{ name = "phantomjs";		condition = { $packages.Contains("phantom") -or $packages.Contains("phantomjs") } }
