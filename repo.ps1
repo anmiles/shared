@@ -35,13 +35,19 @@ Function InGit {
     return $repositories | ? { $relativePath.StartsWith($_.local) }
 }
 
-if (InGit) {
-    $current.branch, $current.branches, $current.fullPath = batch @(
-        "git rev-parse --abbrev-ref HEAD",
-        "git branch --format '%(refname:short)' | grep -v '(HEAD detached at '",
-        "git rev-parse --show-toplevel"
-    )
-    $current.branches = $current.branches -split "`n"
+Function UpdateCurrent {
+    If (InGit) {
+        $current.branch, $current.branches, $current.fullPath = batch @(
+            "git rev-parse --abbrev-ref HEAD",
+            "git branch --format '%(refname:short)' | grep -v '(HEAD detached at '",
+            "git rev-parse --show-toplevel"
+        )
+        $current.branches = $current.branches -split "`n"
+    }
+}
+
+if ($name -ne "all") {
+    UpdateCurrent
 } else {
     $current.branch, $current.branches, $current.fullPath = @($null, @(), $null)
 }
@@ -172,6 +178,7 @@ $found = $false
 $repositories | % {
     if ($name -eq "all" -or $name -eq $_.name) {
         $found = $true
+        UpdateCurrent
         InvokeRepo $_
     }
 }
