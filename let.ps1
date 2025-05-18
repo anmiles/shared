@@ -2,7 +2,7 @@
 .SYNOPSIS
     Creates process-wide environment variable
 .EXAMPLE
-	export.ps1 VAR1=value1 VAR2=value2 npm run command
+	let.ps1 VAR1=value1 VAR2=value2 npm run command
 #>
 
 $cmd = @()
