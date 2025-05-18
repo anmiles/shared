@@ -6,7 +6,7 @@
 #>
 
 Param (
-    [string]$grep = ".*"
+    [string]$grep = "."
 )
 
 $prev_root = ""
