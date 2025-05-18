@@ -52,42 +52,60 @@ function StripGeneric($type) {
 	return $strippedType
 }
 
-function GetDateString(){
+Function ToUpperCamelCase($str){
+	return (($str -split '-') | % { $_.Substring(0, 1).ToUpper() + $_.Substring(1) }) -join ''
+}
+
+Function ToLowerCamelCase($str){
+	$upperCamelCase = ToUpperCamelCase($str)
+	return $upperCamelCase.Substring(0, 1).ToLower() + $upperCamelCase.Substring(1)
+}
+
+function GetDateString($fields){
 	return (Get-Date).ToString("yyyy-MM-dd")
 }
 
-function GetYearString(){
+function GetYearString($fields){
 	return (Get-Date).ToString("yyyy")
 }
 
-$fields = @(
-	@{Name = "name"; Input = $true}
-	@{Name = "description"; Input = $true}
-	@{Name = "date"; Callback = $function:GetDateString}
-	@{Name = "year"; Callback = $function:GetYearString}
-)
+Function GetUpperCamelCase($fields){
+	return ToUpperCamelCase(($fields | ? { $_.Name -eq "name" }).Replacement)
+}
+
+Function GetLowerCamelCase($fields){
+	return ToLowerCamelCase(($fields | ? { $_.Name -eq "name" }).Replacement)
+}
 
 switch ($action) {
 	"init" {
-		$types = @("app", "lib")
+		$types = @("app", "lib", "full", "react-component")
 
 		if (!$types.Contains($arg)) {
 			$usages = ($types | % { "`tts $action $_" }) -join "`n"
 			throw "Usages:`n$usages"
 		}
 
-		$fields | % {
-			if ($_.Input) {
-				$_.Value = ask $_.Name
-			}
-			if ($_.Callback) {
-				$_.Value = $_.Callback.Invoke($fields)[0]
-				# Write-Host "value for $($_.Name) is $($_.Value)"
-			}
-		}
-
 		$location = Get-Location
 		$template = "ts-template-$arg"
+
+		$fields = @(
+			@{Name = "name"; Find = "$template"; Input = $true}
+			@{Name = "description"; Find = "$template-description"; Input = $true}
+			@{Name = "date"; Find = "$template-date"; Callback = $function:GetDateString}
+			@{Name = "year"; Find = "$template-year"; Callback = $function:GetYearString}
+			@{Name = "upperCamelCase"; Find = ToUpperCamelCase($template); Callback = $function:GetUpperCamelCase}
+			@{Name = "lowerCamelCase"; Find = ToLowerCamelCase($template); Callback = $function:GetLowerCamelCase}
+		)
+
+		$fields | % {
+			if ($_.Input) {
+				$_.Replacement = ask $_.Name
+			}
+			if ($_.Callback) {
+				$_.Replacement = $_.Callback.Invoke($fields)[0]
+			}
+		}
 
 		repo $template -quiet -action {
 			if ($repo -eq $location) {
@@ -99,12 +117,8 @@ switch ($action) {
 				$dst = Join-Path $location $_
 				$content = file $src
 
-				$fields | ? { $_.Name -ne "name" } | % {
-					$content = $content.Replace("$template-$($_.Name)", $_.Value)
-				}
-
-				$fields | ? { $_.Name -eq "name" } | % {
-					$content = $content.Replace("$template", $_.Value)
+				$fields | ? {
+					$content = $content.Replace($_.Find, $_.Replacement)
 				}
 
 				Write-Host "Creating $src ... " -NoNewLine
