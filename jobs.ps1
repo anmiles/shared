@@ -1,6 +1,8 @@
 <#
 .SYNOPSIS
 	Show recent jobs of the pipelines for specified repository
+.PARAMETER repo
+	Repository name
 .PARAMETER job
 	Name of the job. If not specified - show all jobs
 .PARAMETER scope
@@ -12,6 +14,7 @@
 #>
 
 Param (
+	[string]$repo,
 	[string]$job,
 	[ValidateSet('created', 'pending', 'running', 'failed', 'success', 'canceled', 'skipped', 'waiting_for_resource', 'manual')][string[]]$scopes,
 	$count = 20,
@@ -21,7 +24,7 @@ Param (
 # TODO: add github support
 gitselect -github { throw "Github is not supported yet for 'jobs' script" }
 
-repo -name this -quiet:$quiet -action {
+repo -name $repo -quiet:$quiet -action {
 	$all_jobs = gitservice -exec {
 		if ($scopes.Count) { $scopes = "&" + (($scopes | % { "scope[]=$_" }) -join "&") }
 		else {$scopes = "" }
@@ -44,7 +47,7 @@ repo -name this -quiet:$quiet -action {
 		return $all_jobs
 	}
 
-	$all_jobs | Sort name, @{Expression={$_.id}; Descending=$true} | % {
+	$all_jobs | Sort name, @{Expression={$_.finished_at}; Descending=$true} | % {
 		$job = $_
 
 		if ($job.created_at) { $created = [DateTime]::Parse($job.created_at).ToString() }
