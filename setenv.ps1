@@ -168,6 +168,7 @@ $terraform_root = Join-Path (Split-Path $scripts_root -Parent) "terraform"
 $vars = @{}
 $vars.ENV_FILE = Join-Path $root "env.json"
 $vars.ENV_REPOSITORIES_FILE = Join-Path $root "env.repositories.json"
+$vars.ENV_ORDER_REPOSITORIES_FILE = Join-Path $root "env.order.repositories.json"
 
 if (Test-Path $vars.ENV_FILE) {
     $json = Get-Content $vars.ENV_FILE | ConvertFrom-Json
