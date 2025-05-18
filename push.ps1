@@ -24,7 +24,7 @@ Param (
     [string]$app = "notification",
     [string]$sound = "magic",
     [int]$priority = 0,
-    [ValidateSet('', 'info', 'warning', 'error')][string]$status,
+    [ValidateSet('info', 'warning', 'error')][string]$status = "info",
     [switch]$local
 )
 
@@ -39,10 +39,9 @@ if (!$local -and !!$user) {
 }
 
 if (!$token -or !$user) {
-    Add-Type -AssemblyName PresentationFramework
     $icon = $status
     if (!$icon) { $icon = "Info" }
-    $messageBox = [Windows.MessageBox]::Show($message, $title, "OK", $icon)
+    msgbox $message $title "OK" $icon
 } else {
     $data = @{
         token = $token
