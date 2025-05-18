@@ -139,13 +139,23 @@ if ($concat) {
 } else {
     $ffprobe = $(ffprobe -v error -show_entries stream=width,height,duration -of csv=s=,:p=0 $input_filename) | ? { $_ -ne "N/A" } | Sort
     $duration = [int]($ffprobe | ? { $_ -match "^\d+(\.\d+)?$" })
-    if (!$duration) { $duration = [int]((($ffprobe | ? {$_ -match ","}) -split ",")[2]) }
+    if (!$duration) {
+        $duration_string = (($ffprobe | ? {$_ -match ","}) -split ",")[2]
+        if ($duration_string -ne "N/A") {
+            $duration = [int]$duration_string
+        }
+    }
     $width_original = [int]((($ffprobe | ? {$_ -match ","}) -split ",")[0])
     $height_original = [int]((($ffprobe | ? {$_ -match ","}) -split ",")[1])
 
     $start_timespan = GetTimeSpan -str $start -default 0
     $end_timespan = GetTimeSpan -str $end -default $duration
-    $length = $end_timespan - $start_timespan
+
+    if ($duration -ne 0 -and $end_timespan) {
+        $length = $end_timespan - $start_timespan
+    } else {
+        $length = $null
+    }
 }
 
 if ($timestamp) {
