@@ -131,7 +131,7 @@ Function Load-GitService($url, $method = "GET", $data = @{}) {
 	# Write-Host "Invoke-WebRequest -Method $method -Body $body $url -UseBasicParsing"
 	$response = Invoke-WebRequest -Headers $headers -Method $method -Body $body -ContentType "application/json" $url -UseBasicParsing
 
-	if ($response.Headers["Content-Type"] -eq "application/json") {
+	if ($response.Headers["Content-Type"].StartsWith("application/json")) {
 		return $response.Content | ConvertFrom-Json
 	} else {
 		return $response.Content
@@ -285,7 +285,17 @@ if ($scan) {
 		}
 	}
 
-	$json = $json | Sort { $item = $_; return !$shared_repositories.Contains((gitselect -github { $item.name } -gitlab { $item.id })) }, local
+	if (Test-Path $env:ENV_ORDER_REPOSITORIES_FILE) {
+		$order_json =  [System.Collections.ArrayList](file $env:ENV_ORDER_REPOSITORIES_FILE | ConvertFrom-Json)
+		$ordered_names = $order_json | % { $_.name }
+		$json = $json | Sort { $ordered_names.IndexOf($_.name) }
+	} else {
+		$json = $json | Sort {
+			$item = $_;
+			return !$shared_repositories.Contains((gitselect -github { $item.name } -gitlab { $item.id }))
+		}, local
+	}
+
 	$content = $json | ConvertTo-Json
 	if ($content) { file $env:ENV_REPOSITORIES_FILE $content }
 	Write-Host "Done!"
