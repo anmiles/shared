@@ -22,4 +22,6 @@ Param (
     [Parameter(ValueFromRemainingArguments = $true)][string[]]$specs
 )
 
+$lib = if ($lib) { "src/lib/$lib" } else { $null }
+
 npr test -watch -coverage -inspect:$inspect -lib $lib -specs $specs
