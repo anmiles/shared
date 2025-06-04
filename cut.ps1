@@ -138,7 +138,7 @@ if ($concat) {
     file $list_filename $input_content
 } else {
     $ffprobe = $(ffprobe -v error -show_entries stream=width,height,duration -of csv=s=,:p=0 $input_filename) | ? { $_ -ne "N/A" } | Sort
-    $duration = [int]($ffprobe | ? { $_ -match "^\d+(\.\d+)?$" })
+    $duration = ($ffprobe | ? { $_ -match "^\d+(\.\d+)?$" })
     if (!$duration) {
         $duration_string = (($ffprobe | ? {$_ -match ","}) -split ",")[2]
         if ($duration_string -ne "N/A") {
@@ -151,7 +151,7 @@ if ($concat) {
     $start_timespan = GetTimeSpan -str $start -default 0
     $end_timespan = GetTimeSpan -str $end -default $duration
 
-    if ($duration -ne 0 -and $end_timespan) {
+    if ($end) {
         $length = $end_timespan - $start_timespan
     } else {
         $length = $null
