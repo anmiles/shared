@@ -30,6 +30,17 @@ Function ShowError($message){
     }
 }
 
+Function RemoveExpired($path, $extension, [int]$days) {
+    if ($days) {
+        $expireDate = (Get-Date).AddDays(-[int]$days)
+
+        Get-ChildItem $path | ? { $_.Extension -eq $extension -and $_.LastWriteTime -lt $expireDate } | % {
+            $status.Value = "remove expired backup $($_.FullName)"
+            Remove-Item $_.FullName -Force
+        }
+    }
+}
+
 try {
     Write-Host "Starting..." -ForegroundColor Green
     $status.Value = "start"
@@ -87,19 +98,8 @@ try {
 
             Push-Location $_.path
             iex $_.command
-            RemoveExpired -path $_.path -days $_.expiredays
+            RemoveExpired -path $_.path -extension ([System.IO.Path]::GetExtension($file)) -days $_.expiredays
             Pop-Location
-        }
-    }
-
-    Function RemoveExpired($path, [int]$days) {
-        if ($days) {
-            $expireDate = (Get-Date).AddDays(-[int]$days)
-
-            Get-ChildItem $path | ? { $_.LastWriteTime -lt $expireDate } | % {
-                $status.Value = "remove expired backup $($_.FullName)"
-                Remove-Item $_.FullName -Force
-            }
         }
     }
 
@@ -157,7 +157,7 @@ try {
         $dstPath = Join-Path $_.path $dstName
 
         try {
-            RemoveExpired -path $_.path -days $_.expiredays
+            RemoveExpired -path $_.path -extension $extension -days $_.expiredays
             $status.Value = "copy backup $tmpZip to $dstPath"
             Copy-Item $tmpZip $dstPath
         } catch {
