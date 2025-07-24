@@ -12,7 +12,7 @@ $defaultPhotoExtension = ".jpg"
 $defaultVideoExtension = ".mp4"
 $mediaExtensions = @($defaultPhotoExtension, $defaultVideoExtension)
 $allVideoExtensions = @(".3gp", ".avi", ".flv", ".m2t", ".m2ts", ".m4v", ".mkv", ".mov", ".mp4", ".mpeg", ".mpg", ".mts", ".ogv", ".qt", ".swf", ".ts", ".vob", ".webm", ".wmv")
-$ignoreExtensions = @(".txt", ".ps1", ".psd", ".wav")
+$ignoreExtensions = @(".txt", ".ps1", ".psd", ".wav", ".gpx")
 
 Import-Module $env:MODULES_ROOT\media.ps1 -Force
 
