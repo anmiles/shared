@@ -15,8 +15,10 @@
     Target extension
 .PARAMETER rate
     Speed up or slow down
-.PARAMETER filters
-    Video filters
+.PARAMETER vf
+    Video vf
+.PARAMETER af
+    Audio vf
 .PARAMETER audio
     Select audio stream to copy. By default - skip selecting
 .PARAMETER hsplit
@@ -38,7 +40,7 @@
 .PARAMETER acopy
     Whether to keep original audio codecs
 .PARAMETER colorize
-    Apply predefined set of filters to make video more colorized
+    Apply predefined set of vf to make video more colorized
 .PARAMETER colorize2
     Even more colorized
 .PARAMETER crop
@@ -61,7 +63,8 @@ Param (
     [string]$prefix,
     [string]$ext,
     [float]$rate = 1,
-    [string]$filters = "",
+    [string]$vf = "",
+    [string]$af = "",
     [int]$audio = 0,
     [string]$hsplit,
     [string]$vsplit,
@@ -174,21 +177,21 @@ while (Test-Path -LiteralPath $output_filename) {
 $scale = "scale=iw:ih"
 if ($height) { $scale = "scale=-2:$height" }
 
-$default_filters_array = @()
+$default_vf_array = @()
 
 if (!$vcopy) {
-    $default_filters_array += "pad=ceil(iw/2)*2:ceil(ih/2)*2"
-    $default_filters_array += $scale
-    $default_filters_array += "setpts=PTS/$rate"
+    $default_vf_array += "pad=ceil(iw/2)*2:ceil(ih/2)*2"
+    $default_vf_array += $scale
+    $default_vf_array += "setpts=PTS/$rate"
 }
 
-$filters_array = $filters.Split(",")
-if ($colorize) { $filters_array += @("eq=saturation=1.3:gamma_b=1.2:gamma_r=1.1") }
-if ($colorize2) { $filters_array += @("eq=saturation=1.5:gamma_b=1.4:gamma_r=1.3") }
+$vf_array = $vf.Split(",")
+if ($colorize) { $vf_array += @("eq=saturation=1.3:gamma_b=1.2:gamma_r=1.1") }
+if ($colorize2) { $vf_array += @("eq=saturation=1.5:gamma_b=1.4:gamma_r=1.3") }
 
-if ($crop) { $filters_array += @("crop=$(crop $width_original $height_original)") }
+if ($crop) { $vf_array += @("crop=$(crop $width_original $height_original)") }
 
-$filters = (($default_filters_array + $filters_array) | ? { $_}) -join ","
+$vf = (($default_vf_array + $vf_array) | ? { $_}) -join ","
 
 $params = @()
 
@@ -217,7 +220,8 @@ if (!$hstack -and !$vstack) {
         if ($vcopy) { $params += @("-vcodec", "copy") }
         else { $params += @("-vcodec", "h264") }
 
-        if ($filters -and !$hsplit -and !$vsplit) { $params += "-vf $filters" }
+        if ($vf -and !$hsplit -and !$vsplit) { $params += "-vf $vf" }
+        if ($af) { $params += "-af $af" }
         $params += @("-pix_fmt", "yuv420p")
     }
 
