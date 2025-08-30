@@ -102,7 +102,7 @@ Function GetPrevMessages([int]$count) {
 }
 
 repo -name $name -quiet:$quiet -action {
-    $is_my_branch = ($branch -ne $default_branch) -and (git for-each-ref --format='%(authorname) %09 %(refname)' | grep "refs/remotes/origin/$branch" | grep $username)
+    $is_my_branch = git for-each-ref --format='%(authorname) %09 %(refname)' | grep "refs/remotes/origin/$branch" | grep $username
 
     $unpushed, $uncommitted, $unmerged, $problems = batch @(
         "git log --format=format:%H origin/$branch..$branch",
