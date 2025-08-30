@@ -1,49 +1,26 @@
 <#
-.SYNOPSIS
+.DESCRIPTION
     Make window always on top
-.PARAMETER process
-    Process id
-.PARAMETER handle
-    Window handle
 .PARAMETER title
     Window title
-.PARAMETER check
-    Just output the handle found
+.PARAMETER position
+    Window position as array @($left, $top, $width, $height)
 #>
 
 Param (
-    [int]$handle,
-    [int]$process,
     [string]$title,
-    [switch]$check
+    [int[]]$position = @()
 )
 
-$user32Lib = @"
-    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
-    public static extern IntPtr FindWindow(IntPtr sClassName, String sAppName);
+$handle = window $title
 
-    [DllImport("user32.dll")]
-    public static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X,int Y, int cx, int cy, uint uFlags);
-"@
-
-$user32 = Add-Type -Namespace User32Functions -Name User32Functions -MemberDefinition $user32Lib -PassThru
-
-if (!$handle) {
-    if (!$process -and !$title) {
-        throw "Expected either handle or process or title set"
+if ($handle -ne 0) {
+    if ($position.Count -eq 4) {
+        [User32]::SetWindowPos([System.IntPtr]$handle, -1, $position[0], $position[1], $position[2], $position[3], 0x0)
+    } else {
+        [User32]::SetWindowPos([System.IntPtr]$handle, -1, 0, 0, 0, 0, 0x53)
     }
-
-    if ($process) {
-        $handle = (Get-Process -Id $process).MainWindowHandle
-    }
-
-    if ($title) {
-        $handle = $user32::FindWindow([IntPtr]::Zero, $title)
-    }
-}
-
-if ($check) {
-    $handle
+    exit 0
 } else {
-    [void]$user32::SetWindowPos([System.IntPtr]$handle, -1, 0, 0, 0, 0, 0x53)
+    exit 1
 }
