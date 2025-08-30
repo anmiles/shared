@@ -7,4 +7,11 @@ Param (
     [string]$name
 )
 
-taskkill /f /im "$name.exe"
+$process = Get-Process | ? { $_.ProcessName -eq $name }
+
+if ($process) {
+    taskkill /f /im "$name.exe"
+    exit 0
+} else {
+    exit 1
+}
