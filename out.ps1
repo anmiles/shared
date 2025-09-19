@@ -18,15 +18,13 @@ Param (
     [ConsoleColor]$ForegroundColor = "Gray"
 )
 
-$length = 0
-
 if ($text -and ($text.Trim() -or $NoNewline)) {
     Write-Host (fmt $text $ForegroundColor -parse) -NoNewline
 
     if ($underline) {
         Write-Host ""
         Write-Host ""
-        Write-Host (fmt ("-" * $length) $ForegroundColor -parse)
+        Write-Host (fmt ("-" * [console]::WindowWidth) $ForegroundColor -parse)
     }
 }
 
