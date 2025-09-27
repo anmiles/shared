@@ -29,6 +29,8 @@
     Stack video horizontally with another video. Ignores all other parameters.
 .PARAMETER vstack
     Stack video vertically with another video. Ignores all other parameters.
+.PARAMETER crossfade
+    Length of the crossfade between videos
 .PARAMETER timestamp
     Whether to use current time to generate target filename rather than re-using source filename with adding prefix before it.
 .PARAMETER novideo
@@ -70,6 +72,7 @@ Param (
     [string]$vsplit,
     [string]$hstack,
     [string]$vstack,
+    [int]$crossfade,
     [switch]$crop,
     [switch]$timestamp,
     [switch]$novideo,
@@ -98,11 +101,26 @@ Function GetStamp($int) {
     Write-Host ($int % 60)
 }
 
+Function MeasureVideo($filename) {
+    $ffprobe = $(ffprobe -v error -show_entries stream=width,height,duration -of csv=s=,:p=0 $filename) | ? { $_ -ne "N/A" } | Sort
+    $duration = ($ffprobe | ? { $_ -match "^\d+(\.\d+)?$" })
+    if (!$duration) {
+        $duration_string = (($ffprobe | ? {$_ -match ","}) -split ",")[2]
+        if ($duration_string -ne "N/A") {
+            $duration = [int]$duration_string
+        }
+    }
+    $width = [int]((($ffprobe | ? {$_ -match ","}) -split ",")[0])
+    $height = [int]((($ffprobe | ? {$_ -match ","}) -split ",")[1])
+    return @($width, $height, $duration)
+}
+
 $framerate = [Math]::Floor(25 * $rate)
 
 $exts_audio = @(".aac", ".am4", ".cda", ".flac", ".m4a", ".mp3", ".ogg", ".wav", ".wma")
 $ext_default_video = ".mp4"
 $ext_default_audio = ".mp3"
+$codec_default_audio = "mp3"
 
 $inputs = Get-Item $source
 if (!$inputs) { $inputs = Get-Item -LiteralPath $source -Force }
@@ -131,25 +149,47 @@ $input = $inputs[0]
 $input_filename = $input.FullName
 $output_filename = $input.FullName
 
+$params = @()
+
 if ($concat) {
     $start_timespan = $null
     $length = $null
 
     $cwd = Split-Path $input_filename -Parent
-    $list_filename = $input_filename.Replace($input.Name, "ffmpeg.txt")
-    $input_content = ($inputs | Sort { [regex]::Replace($_, '\d+', { $args[0].Value.PadLeft(20) }) } | % { "file $($_.FullName.Replace($cwd, '').Replace('\', '/') -replace '^\/', '')" }) -join "`n"
-    file $list_filename $input_content
-} else {
-    $ffprobe = $(ffprobe -v error -show_entries stream=width,height,duration -of csv=s=,:p=0 $input_filename) | ? { $_ -ne "N/A" } | Sort
-    $duration = ($ffprobe | ? { $_ -match "^\d+(\.\d+)?$" })
-    if (!$duration) {
-        $duration_string = (($ffprobe | ? {$_ -match ","}) -split ",")[2]
-        if ($duration_string -ne "N/A") {
-            $duration = [int]$duration_string
+    $inputs_list = $inputs | % {"-i $_"}
+    $params += $inputs_list
+    $parent = Split-Path $inputs[0] -Parent
+    $output_filename = $parent + $ext
+
+    if ($crossfade) {
+        $filters_complex = @()
+        $duration_total = 0
+        $vLeft = "0:v"
+        $aLeft = "0:a"
+
+        for ($i = 1; $i -lt $inputs.Count; $i++) {
+            $vRight = "$($i):v"
+            $aRight = "$($i):a"
+            $vOut = if ($i -eq $inputs.Count - 1) { "vout" } else { "v$i" }
+            $aOut = if ($i -eq $inputs.Count - 1) { "aout" } else { "a$i" }
+
+            $duration = (MeasureVideo $inputs[$i - 1])[2]
+            $duration_total += $duration - $crossfade
+
+            if (!$novideo) { $filters_complex += "[$vLeft][$vRight]xfade=transition=fade:duration=$($crossfade):offset=$duration_total[$vOut]" }
+            if (!$mute) { $filters_complex += "[$aLeft][$aRight]acrossfade=d=$($crossfade)[$aOut]" }
+
+            $vLeft = $vOut
+            $aLeft = $aOut
         }
+
+        $params += @("-filter_complex", "`"$($filters_complex -join ";")`"")
+
+        if (!$novideo) { $params += @("-map", "[vout]") }
+        if (!$mute) { $params += @("-map", "[aout]") }
     }
-    $width_original = [int]((($ffprobe | ? {$_ -match ","}) -split ",")[0])
-    $height_original = [int]((($ffprobe | ? {$_ -match ","}) -split ",")[1])
+} else {
+    $width, $height, $duration = MeasureVideo $input_filename
 
     $start_timespan = GetTimeSpan -str $start -default 0
     $end_timespan = GetTimeSpan -str $end -default $duration
@@ -189,11 +229,9 @@ $vf_array = $vf.Split(",")
 if ($colorize) { $vf_array += @("eq=saturation=1.3:gamma_b=1.2:gamma_r=1.1") }
 if ($colorize2) { $vf_array += @("eq=saturation=1.5:gamma_b=1.4:gamma_r=1.3") }
 
-if ($crop) { $vf_array += @("crop=$(crop $width_original $height_original)") }
+if ($crop) { $vf_array += @("crop=$(crop $width $height)") }
 
 $vf = (($default_vf_array + $vf_array) | ? { $_}) -join ","
-
-$params = @()
 
 if ($hstack) {
     $params += @("-i", "`"$input_filename`"")
@@ -209,9 +247,7 @@ if ($vstack) {
 
 if (!$hstack -and !$vstack) {
     if ($start_timespan) { $params += @("-ss", $start_timespan) }
-    if ($concat) { $params += @("-f", "concat", "-safe", "0", "-i", "`"$list_filename`"") }
-    else { $params += @("-i", "`"$input_filename`"") }
-
+    if (!$concat) { $params += @("-i", "`"$input_filename`"") }
     if ($audio) { $params += @("-map", "0:v:0", "-map", "0:a:$audio") }
 
     if ($novideo) {
@@ -220,8 +256,8 @@ if (!$hstack -and !$vstack) {
         if ($vcopy) { $params += @("-vcodec", "copy") }
         else { $params += @("-vcodec", "h264") }
 
-        if ($vf -and !$hsplit -and !$vsplit) { $params += "-vf $vf" }
-        if ($af) { $params += "-af $af" }
+        if ($vf -and !$params.Contains("-filter_complex")) { $params += "-vf $vf" }
+        if ($af -and !$params.Contains("-filter_complex")) { $params += "-af $af" }
         $params += @("-pix_fmt", "yuv420p")
     }
 
@@ -229,7 +265,10 @@ if (!$hstack -and !$vstack) {
         $params += "-an"
     } else {
         if ($acopy) { $params += @("-acodec", "copy") }
-        else { $params += @("-acodec", "aac", "-b:a", "320k", "-ar", "44100") }
+        else {
+            $aCodec = if ($novideo) { $codec_default_audio } else { "aac" }
+            $params += @("-acodec", $aCodec, "-b:a", "320k", "-ar", "44100")
+        }
     }
 
     if ($length) { $params += @("-t", $length) }
@@ -269,7 +308,6 @@ if (!$silent) {
 }
 
 Start-Process cmd -ArgumentList "/c ffmpeg $params" -NoNewWindow -Wait
-# if ($concat) { Remove-Item $input_filename }
 
 if (!$silent) {
     Write-Host $output_filename -ForegroundColor Green
