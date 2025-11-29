@@ -11,6 +11,8 @@
 		json - machine-readable JSON
 .PARAMETER mock
 	Whether to mock file system (for test purposes)
+.PARAMETER name
+	Repository name ("all" by default)
 .PARAMETER value
 	Return value of the first matched group. Not applicable if format == 'files' or text_pattern missing
 .PARAMETER allowJS
@@ -43,11 +45,12 @@ Param (
 	[string]$text_pattern,
 	[ValidateSet('text', 'files', 'lines', 'json')][string]$format = "text",
 	[string]$mockFile,
+	[string]$name = "all",
 	[switch]$value,
 	[switch]$allowJS
 )
 
-repo all -quiet {
+repo $name -quiet {
 	$ext_pattern = switch($allowJS) { $true { "[jt]s" } $false { "ts" }}
 	$file_pattern = ('\.[cm]?' + $ext_pattern + 'x?$')
 
