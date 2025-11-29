@@ -117,9 +117,12 @@ switch ($action) {
 				$dst = Join-Path $location $_
 				$content = file $src
 
-				$fields | ? {
+				$fields | ? { $_.Name -ne "name" } | % {
 					$content = $content.Replace($_.Find, $_.Replacement)
 				}
+
+				$nameField = $fields | ? { $_.Name -eq "name" }
+				$content = $content.Replace($nameField.Find, $nameField.Replacement)
 
 				Write-Host "Creating $src ... " -NoNewLine
 				$parent = Split-Path $dst -Parent
