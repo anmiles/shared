@@ -12,6 +12,8 @@
     Script block.
 .PARAMETER new_branch
     Name of new branch to make the action
+.PARAMETER from
+	Continue from specified repository (applicable if name = "all")
 .PARAMETER quiet
     Whether to not output current repository and branch name
 .EXAMPLE
@@ -23,6 +25,7 @@ Param (
     [string]$name,
     [ScriptBlock]$action = {},
     $new_branch,
+    $from,
     [switch]$quiet
 )
 
@@ -174,9 +177,14 @@ if ($name -and $name -ne "all" -and $name -ne "it") {
 }
 
 $found = $false
+$include = !$from
 
 $repositories | % {
-    if ($name -eq "all" -or $name -eq $_.name) {
+    if ($_.name -eq $from) {
+        $include = $true
+    }
+
+    if ($include -and ($name -eq "all" -or $name -eq $_.name)) {
         $found = $true
         UpdateCurrent
         InvokeRepo $_
