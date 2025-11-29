@@ -31,6 +31,8 @@
     Stack video vertically with another video. Ignores all other parameters.
 .PARAMETER crossfade
     Length of the crossfade between videos
+.PARAMETER rotate
+    Rotate the video n times clockwise
 .PARAMETER timestamp
     Whether to use current time to generate target filename rather than re-using source filename with adding prefix before it.
 .PARAMETER novideo
@@ -73,6 +75,7 @@ Param (
     [string]$hstack,
     [string]$vstack,
     [int]$crossfade,
+    [int]$rotate = 0,
     [switch]$crop,
     [switch]$timestamp,
     [switch]$novideo,
@@ -218,6 +221,18 @@ $scale = "scale=iw:ih"
 if ($height) { $scale = "scale=-2:$height" }
 
 $default_vf_array = @()
+
+if ($rotate -gt 0) {
+    1..$rotate | % {
+        $default_vf_array += "transpose=1"
+    }
+}
+
+if ($rotate -lt 0) {
+    $rotate..-1 | % {
+        $default_vf_array += "transpose=2"
+    }
+}
 
 if (!$vcopy) {
     $default_vf_array += "pad=ceil(iw/2)*2:ceil(ih/2)*2"
