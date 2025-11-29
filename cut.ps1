@@ -229,7 +229,7 @@ $vf_array = $vf.Split(",")
 if ($colorize) { $vf_array += @("eq=saturation=1.3:gamma_b=1.2:gamma_r=1.1") }
 if ($colorize2) { $vf_array += @("eq=saturation=1.5:gamma_b=1.4:gamma_r=1.3") }
 
-if ($crop) { $vf_array += @("crop=$(crop $width $height)") }
+if ($crop) { $vf_array += @("crop=$(crop $width $height $(rect))") }
 
 $vf = (($default_vf_array + $vf_array) | ? { $_}) -join ","
 

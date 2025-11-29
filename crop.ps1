@@ -1,126 +1,69 @@
 <#
 .SYNOPSIS
-    Requests the crop rectangle
-.PARAMETER width
-    Original width. If specified, recalculates result from screen width to the specified width
-.PARAMETER height
-    Original height. If specified, recalculates result from screen height to the specified height
+	Returns the crop for the requested rectangle
+.PARAMETER src_width
+	Width of the source
+.PARAMETER src_height
+	Height of the source
+.PARAMETER rect
+	Rectangle to crop. Specified as array of [x1, y1, x2, y2] as visible on the primary screen. Will be recalculated according to src_width and src_height
 #>
 
 Param (
-    [int]$width = 0,
-    [int]$height = 0
+	[int]$src_width,
+	[int]$src_height,
+	[int[]]$rect
 )
 
-[void][System.Reflection.Assembly]::LoadWithPartialName("System.Drawing")
-[void][System.Reflection.Assembly]::LoadWithPartialName("System.Windows.Forms")
-# $screen = [System.Windows.Forms.Screen]::AllScreens | Sort { $_.Bounds.X } | Select -Last 1
 $screen = [System.Windows.Forms.Screen]::AllScreens | ? { $_.Primary }
-$form = New-Object System.Windows.Forms.Form
-$form.Location = $screen.Bounds.Location
-$form.Size = $screen.Bounds.Size
-$form.FormBorderStyle = "None"
-$form.StartPosition = "Manual"
-$form.ShowInTaskbar = $false
-$form.ShowIcon = $false
-$form.TopMost = $true
-$form.BackColor = [System.Drawing.Color]::FromArgb(255, 255, 255, 255)
-$form.Opacity = 0.5
+$screen_width = $screen.Bounds.Size.Width
+$screen_height = $screen.Bounds.Size.Height
 
-$first = @{}
-$second = @{}
-$current = @{}
-$manual = @{}
-$result = @{}
-$graphics = $form.CreateGraphics()
-$pen = [System.Drawing.Pen]::new([System.Drawing.Color]::Red)
+$x1, $y1, $x2, $y2 = $rect
 
-Function SetFirst($point) {
-	$first.X = $point.X
-	$first.Y = $point.Y
-}
+# ""
+# '$x1, $y1, $x2, $y2'
+# $x1, $y1, $x2, $y2
 
-Function SetSecond($point) {
-	$second.X = $point.X
-	$second.Y = $point.Y
-	$form.Close()
-}
+$xc1 = $x1 - $screen_width / 2
+$xc2 = $x2 - $screen_width / 2
+$yc1 = $y1 - $screen_height / 2
+$yc2 = $y2 - $screen_height / 2
 
-Function DrawRectangle($point, $is_manual) {
-	$current.X = $point.X
-	$current.Y = $point.Y
+# ""
+# '$xc1, $yc1, $xc2, $yc2'
+# $xc1, $yc1, $xc2, $yc2
 
-	$graphics.Clear($form.BackColor)
+$max_ratio = [Math]::Max($src_width / $screen_width, $src_height / $screen_height)
 
-	if ($first.X) {
-		$x0 = [Math]::Min($first.X, $point.X)
-		$x1 = [Math]::Max($first.X, $point.X)
-		$y0 = [Math]::Min($first.Y, $point.Y)
-		$y1 = [Math]::Max($first.Y, $point.Y)
-		$graphics.DrawRectangle($pen, $x0, $y0, $x1 - $x0, $y1 - $y0)
-	} else {
-		$graphics.DrawLine($pen, $point.X, $form.Location.Y, $point.X, $form.Location.Y + $form.Size.Height)
-		$graphics.DrawLine($pen, $form.Location.X, $point.Y, $form.Location.X + $form.Size.Width, $point.Y)
-	}
-}
+$xc1 = [Math]::Round($xc1 * $max_ratio)
+$xc2 = [Math]::Round($xc2 * $max_ratio)
+$yc1 = [Math]::Round($yc1 * $max_ratio)
+$yc2 = [Math]::Round($yc2 * $max_ratio)
 
-$form.add_MouseDown({
-	SetFirst $_
-})
+# ""
+# '$xc1, $yc1, $xc2, $yc2'
+# $xc1, $yc1, $xc2, $yc2
 
-$form.add_MouseUp({
-	SetSecond $_
-})
+$x1 = $xc1 + $src_width / 2
+$x2 = $xc2 + $src_width / 2
+$y1 = $yc1 + $src_height / 2
+$y2 = $yc2 + $src_height / 2
 
-$form.add_MouseMove({
-	DrawRectangle $_
-})
+# ""
+# '$x1, $y1, $x2, $y2'
+# $x1, $y1, $x2, $y2
 
-$form.add_KeyDown({
-	if ($_.KeyCode -eq "Up") {
-		$current.Y--
-		DrawRectangle $current
-	}
-	if ($_.KeyCode -eq "Down") {
-		$current.Y++
-		DrawRectangle $current
-	}
-	if ($_.KeyCode -eq "Left") {
-		$current.X--
-		DrawRectangle $current
-	}
-	if ($_.KeyCode -eq "Right") {
-		$current.X++
-		DrawRectangle $current
-	}
-	if ($_.KeyCode -eq "Escape") {
-		$form.Close()
-	}
-	if ($_.KeyCode -eq "Enter") {
-		if ($first.X) {
-			SetSecond $current
-		} else {
-			SetFirst $current
-		}
-	}
-})
+$x1 = [Math]::Max($x1, 0)
+$x2 = [Math]::Min($x2, $src_width)
+$y1 = [Math]::Max($y1, 0)
+$y2 = [Math]::Min($y2, $src_height)
 
-[void]$form.ShowDialog()
+# ""
+# '$x1, $y1, $x2, $y2'
+# $x1, $y1, $x2, $y2
 
-$first.X = [Math]::Min($first.X, $second.X)
-$second.X = [Math]::Max($first.X, $second.X)
-$first.Y = [Math]::Min($first.Y, $second.Y)
-$second.Y = [Math]::Max($first.Y, $second.Y)
+$width = $x2 - $x1
+$height = $y2 - $y1
 
-if ($width -or $height) {
-	$ratio = 1.0
-	if ($width) { $ratio = [Math]::Min($ratio, $width / $screen.Bounds.Size.Width) }
-	if ($height) { $ratio = [Math]::Max($ratio, $height / $screen.Bounds.Size.Height) }
-
-	$first.X = [Math]::Round($first.X * $ratio)
-	$second.X = [Math]::Round($second.X * $ratio)
-	$first.Y = [Math]::Round($first.Y * $ratio)
-	$second.Y = [Math]::Round($second.Y * $ratio)
-}
-
-"$($second.X - $first.X):$($second.Y - $first.Y):$($first.X):$($first.Y)"
+"$($width):$($height):$($x1):$($y1)"
