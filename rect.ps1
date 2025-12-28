@@ -80,10 +80,6 @@ Function DrawLabel($form, $label, $mode) {
 			$current.Y + $label_gap
 		}
 	}
-
-	if ($mode -eq "rect") {
-		$label.Text = "$($label.Left) x $($label.Top)"
-	}
 }
 
 Function SetFirst($point) {
