@@ -48,7 +48,7 @@
 .PARAMETER colorize2
     Even more colorized
 .PARAMETER crop
-    Whether to crop video
+    Whether to crop video. Can receive an exact crop in format "w:h:x:y" or "$true" if need to choose a crop
 .PARAMETER silent
     Less verbose output
 .EXAMPLE
@@ -152,6 +152,8 @@ $input = $inputs[0]
 $input_filename = $input.FullName
 $output_filename = $input.FullName
 
+$width, $height, $duration = MeasureVideo $input_filename
+
 $params = @()
 
 if ($concat) {
@@ -192,8 +194,6 @@ if ($concat) {
         if (!$mute) { $params += @("-map", "[aout]") }
     }
 } else {
-    $width, $height, $duration = MeasureVideo $input_filename
-
     $start_timespan = GetTimeSpan -str $start -default 0
     $end_timespan = GetTimeSpan -str $end -default $duration
 
@@ -244,7 +244,12 @@ $vf_array = $vf.Split(",")
 if ($colorize) { $vf_array += @("eq=saturation=1.3:gamma_b=1.2:gamma_r=1.1") }
 if ($colorize2) { $vf_array += @("eq=saturation=1.5:gamma_b=1.4:gamma_r=1.3") }
 
-if ($crop) { $vf_array += @("crop=$(crop $width $height $(rect))") }
+if ($crop) {
+    if ($crop -eq $true) {
+        $crop = crop $width $height $(rect)
+    }
+    $vf_array += @("crop=$crop")
+}
 
 $vf = (($default_vf_array + $vf_array) | ? { $_}) -join ","
 
