@@ -51,6 +51,8 @@
     Whether to crop video. Can receive an exact crop in format "w:h:x:y" or "$true" if need to choose a crop
 .PARAMETER silent
     Less verbose output
+.PARAMETER test
+    Only output ffmpeg arguments
 .EXAMPLE
     cut "D:\video.avi" 32 1:42
     # cuts video D:\video.avi from 32 seconds to 1 minute 42 seconds and sets output filename the source filename without prefix and with extension "ext"
@@ -84,7 +86,8 @@ Param (
     [switch]$acopy,
     [switch]$colorize,
     [switch]$colorize2,
-    [switch]$silent
+    [switch]$silent,
+    [switch]$test
 )
 
 Function GetTimeSpan {
@@ -327,7 +330,9 @@ if (!$silent) {
     Write-Host "$input_filename => $output_filename" -ForegroundColor Green
 }
 
-Start-Process cmd -ArgumentList "/c ffmpeg $params" -NoNewWindow -Wait
+if (!$test) {
+    Start-Process cmd -ArgumentList "/c ffmpeg $params" -NoNewWindow -Wait
+}
 
 if (!$silent) {
     Write-Host $output_filename -ForegroundColor Green
