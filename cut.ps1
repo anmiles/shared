@@ -33,6 +33,8 @@
     Length of the crossfade between videos
 .PARAMETER rotate
     Rotate the video n times clockwise
+.PARAMETER tracks
+    Select specified video and audio tracks (in array format "#audio,#video")
 .PARAMETER timestamp
     Whether to use current time to generate target filename rather than re-using source filename with adding prefix before it.
 .PARAMETER novideo
@@ -78,7 +80,8 @@ Param (
     [string]$vstack,
     [int]$crossfade,
     [int]$rotate = 0,
-    [switch]$crop,
+    [int[]]$tracks,
+    [string]$crop,
     [switch]$timestamp,
     [switch]$novideo,
     [switch]$mute,
@@ -108,7 +111,7 @@ Function GetStamp($int) {
 }
 
 Function MeasureVideo($filename) {
-    $ffprobe = $(ffprobe -v error -show_entries stream=width,height,duration -of csv=s=,:p=0 $filename) | ? { $_ -ne "N/A" } | Sort
+    $ffprobe = $(ffprobe -v error -select_streams v:0 -show_entries stream=width,height,duration -of csv=s=,:p=0 $filename 2>$null) | ? { $_ -ne "N/A" } | Sort
     $duration = ($ffprobe | ? { $_ -match "^\d+(\.\d+)?$" })
     if (!$duration) {
         $duration_string = (($ffprobe | ? {$_ -match ","}) -split ",")[2]
@@ -315,6 +318,11 @@ if ($vsplit) {
     $output_filename_0 = $output_filename.Replace($ext, "_top" + $ext)
     $output_filename_1 = $output_filename.Replace($ext, "_bottom" + $ext)
     $params += @("-filter_complex", $filter_complex, "-map", "[top]", "`"$output_filename_0`"", "-map", "[bottom]", "`"$output_filename_1`"")
+}
+
+if ($tracks) {
+    $video_track, $audio_track = $tracks
+    $params += @("-map", "0:v:$video_track", "-map", "0:a:$audio_track")
 }
 
 if ($silent) {
