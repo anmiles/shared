@@ -31,6 +31,8 @@
     Whether to squash all unpushed commits into one
 .PARAMETER minor
     Whether to skip CI pipeline
+.PARAMETER status
+    Just return status of repository (bit mask: unpushed=1 uncommitted=2 unmerged=4 problems=8)
 .EXAMPLE
     save
     # add and commit the current directory
@@ -55,7 +57,8 @@ Param (
     [switch]$draft,
     [switch]$push,
     [switch]$squash,
-    [switch]$minor
+    [switch]$minor,
+    [switch]$status
 )
 
 $commit_message_example = "ABC-123 Description"
@@ -101,6 +104,10 @@ Function GetPrevMessages([int]$count) {
     return @(git log --pretty=format:%B) | ? { $_ -and !$_.StartsWith("Merge branch") -and $_ -notmatch '^\d+\.\d+\.\d+$' } | Select -First $count
 }
 
+if ($name -eq "all" -and $status) {
+    throw "Cannot return status of all repositories"
+}
+
 repo -name $name -quiet:$quiet -action {
     $is_my_branch = git for-each-ref --format='%(authorname) %09 %(refname)' | grep "refs/remotes/origin/$branch" | grep $username
 
@@ -110,6 +117,24 @@ repo -name $name -quiet:$quiet -action {
         "git diff --name-status --diff-filter=U",
         "git diff --check"
     ) | % { $_.Length }
+
+    if ($status) {
+        $status_result = 0
+
+        $statuses = @{
+            unpushed = 1
+            uncommitted = 2
+            unmerged = 4
+            problems = 8
+        }
+
+        if ($unpushed) { $status_result = $status_result -bor $statuses.unpushed }
+        if ($uncommitted) { $status_result = $status_result -bor $statuses.uncommitted }
+        if ($unmerged) { $status_result = $status_result -bor $statuses.unmerged }
+        if ($problems) { $status_result = $status_result -bor $statuses.problems }
+
+        return $status_result
+    }
 
     if ($problems -gt 0) {
         git diff --check
