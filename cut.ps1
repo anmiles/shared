@@ -15,6 +15,8 @@
     Target extension
 .PARAMETER rate
     Speed up or slow down
+.PARAMETER limit
+    Compress video using specified max bitrate
 .PARAMETER vf
     Video vf
 .PARAMETER af
@@ -61,6 +63,9 @@
 .EXAMPLE
     cut "D:\video.avi" -hsplit 2:1
     # splits video D:\video.avi horizontally into 2 videos: left video of 2x width and right video of 1x width
+.EXAMPLE
+    cut "D:\video.avi" -limit 8M
+    # cuts video D:\video.avi with limiting max bitrate = 8M
 #>
 
 Param (
@@ -71,6 +76,7 @@ Param (
     [string]$prefix,
     [string]$ext,
     [float]$rate = 1,
+    [string]$limit = "",
     [string]$vf = "",
     [string]$af = "",
     [int]$audio = 0,
@@ -323,6 +329,12 @@ if ($vsplit) {
 if ($tracks) {
     $video_track, $audio_track = $tracks
     $params += @("-map", "0:v:$video_track", "-map", "0:a:$audio_track")
+}
+
+if ($limit) {
+    $params += @("-fpsmax", "30")
+    $params += @("-maxrate", $limit)
+    $params += @("-bufsize", $limit)
 }
 
 if ($silent) {
