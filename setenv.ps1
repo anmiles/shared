@@ -18,6 +18,26 @@ Function global:ex([switch]$confirm, [switch]$return) {
     return $true
 }
 
+Function global:execute([switch]$confirmErrors, [switch]$ignoreErrors, [switch]$repeat) {
+	while ($true) {
+		out "{Green:> $args}"
+		iex "$args"
+
+		if ($ignoreErrors) {
+			return
+		}
+
+		$result = ex -confirm:$confirmErrors -return:$repeat
+
+		if ($repeat -and !$result) {
+            out "{Yellow:Press ENTER to try again}"
+			[void](Read-Host)
+		} else {
+			break
+		}
+	}
+}
+
 Function global:getenc($num) {
     switch ($num) {
         866 { return [System.Text.Encoding]::GetEncoding("cp866") }
