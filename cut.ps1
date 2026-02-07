@@ -51,6 +51,8 @@
     Apply predefined set of vf to make video more colorized
 .PARAMETER colorize2
     Even more colorized
+.PARAMETER colorize3
+    Even much more colorized
 .PARAMETER crop
     Whether to crop video. Can receive an exact crop in format "w:h:x:y" or "$true" if need to choose a crop
 .PARAMETER silent
@@ -95,6 +97,7 @@ Param (
     [switch]$acopy,
     [switch]$colorize,
     [switch]$colorize2,
+    [switch]$colorize3,
     [switch]$silent,
     [switch]$test
 )
@@ -254,7 +257,8 @@ if (!$vcopy) {
 
 $vf_array = $vf.Split(",")
 if ($colorize) { $vf_array += @("eq=saturation=1.3:gamma_b=1.2:gamma_r=1.1") }
-if ($colorize2) { $vf_array += @("eq=saturation=1.5:gamma_b=1.4:gamma_r=1.3") }
+if ($colorize2) { $vf_array += @("eq=saturation=1.4:gamma_b=1.2:gamma_r=1.2") }
+if ($colorize3) { $vf_array += @("eq=saturation=1.5:gamma_b=1.4:gamma_r=1.3") }
 
 if ($crop) {
     if ($crop -eq $true) {
