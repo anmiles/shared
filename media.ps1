@@ -115,7 +115,7 @@ Function CutVideo($filename, $prefix) {
 		$filename_converted = GetConvertedFilename $filename $prefix
 		CopyFile $filename $filename_converted
 	} else {
-		cut $filename -prefix $prefix -silent
+		cut $filename -prefix $prefix -limit 8M -silent
 	}
 }
 
