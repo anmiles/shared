@@ -5,6 +5,8 @@
     Highlights everything in yellow and {{text}} in green
 .PARAMETER question
     String question to ask without '?'
+.PARAMETER defaultValue
+    Default value if nothing selected and ENTER just pressed
 .PARAMETER extended
     Whether to provide additional options like 'a' for all yes and 'x' for all no
 .PARAMETER result
@@ -12,10 +14,17 @@
 .EXAMPLE
     confirm "Are you really sure to delete {{$file}}"
     # outputs "Are you sure (y/n)?", highlights question with yellow, and $file with green, and accepts only (y/n) as answer, then returns True if y and False if n
+.EXAMPLE
+    confirm "Suppress warning" -extended
+    # outputs "Suppress warning (y/n/a/x)?", highlights question with yellow and accepts (y/n/a/x) as answer, then returns objects with (True if y and False if n) and All
+.EXAMPLE
+    confirm "Enable debugging" -defaultValue y
+    # outputs "Enable debugging (y/n)?", highlights question with yellow and accepts only (y/n) as answer, then returns True if y and False if n, defaulting to y
 #>
 
 Param (
     [Parameter(Mandatory = $true)][string]$question,
+    [string]$defaultValue,
     [switch]$extended,
     [Nullable[boolean]]$result = $null
 )
@@ -32,6 +41,14 @@ $answers = switch($extended) {
     $true { @("y", "n", "a", "x") }
 }
 
+if ($defaultValue) {
+    if (!$answers.Contains($defaultValue)) {
+        throw "Invalid default value '$defaultValue', expected one of $answers"
+    }
+
+    $options += ", default=$defaultValue"
+}
+
 Function Ask-Question($question) {
     if ($result -is [boolean]) {
         if ($result) { return "y" }
@@ -40,12 +57,20 @@ Function Ask-Question($question) {
 
     out $question -NoNewline -ForegroundColor Yellow
     out " ($options)? " -NoNewline -ForegroundColor Yellow
-    return Read-Host
+    Read-Host
 }
 
-do {
+while ($true) {
     $answer = Ask-Question $question
-} while (!$answers.Contains($answer))
+
+    if (!$answer) {
+        $answer = $defaultValue
+    }
+
+    if ($answers.Contains($answer)) {
+        break
+    }
+}
 
 switch($extended) {
     $false { $answer -eq "y" }
