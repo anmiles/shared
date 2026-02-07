@@ -184,11 +184,17 @@ $repositories | % {
         $include = $true
     }
 
-    if ($include -and ($name -eq "all" -or $name -eq $_.name)) {
-        $found = $true
-        UpdateCurrent
-        InvokeRepo $_
+    if (!$include) {
+        return
     }
+
+    if ($name -ne "all" -and $name -ne $_.name) {
+        return
+    }
+
+    $found = $true
+    UpdateCurrent
+    InvokeRepo $_
 }
 
 Function GetCandidates($name) {
