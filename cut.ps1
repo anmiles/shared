@@ -78,7 +78,7 @@ Param (
     [string]$prefix,
     [string]$ext,
     [float]$rate = 1,
-    [string]$limit = "",
+    [string]$limit = "8M",
     [string]$vf = "",
     [string]$af = "",
     [int]$audio = 0,
@@ -120,17 +120,16 @@ Function GetStamp($int) {
 }
 
 Function MeasureVideo($filename) {
-    $ffprobe = $(ffprobe -v error -select_streams v:0 -show_entries stream=width,height,duration -of csv=s=,:p=0 $filename 2>$null) | ? { $_ -ne "N/A" } | Sort
-    $duration = ($ffprobe | ? { $_ -match "^\d+(\.\d+)?$" })
-    if (!$duration) {
-        $duration_string = (($ffprobe | ? {$_ -match ","}) -split ",")[2]
-        if ($duration_string -ne "N/A") {
-            $duration = [int]$duration_string
-        }
-    }
-    $width = [int]((($ffprobe | ? {$_ -match ","}) -split ",")[0])
-    $height = [int]((($ffprobe | ? {$_ -match ","}) -split ",")[1])
-    return @($width, $height, $duration)
+    $output = $(ffprobe -v error -select_streams v:0 -show_entries stream=width,height,duration,bit_rate -of csv=s=,:p=0 $filename 2>$null)
+    $sorted = $output | ? { $_ -ne "N/A" } | Sort
+    $groups = ($sorted | ? {$_ -match ","}) -split ","
+
+    $width = [int]$groups[0]
+    $height = [int]$groups[1]
+    $duration = if ($groups[2] -eq "N/A") { 0 } else { $groups[2] }
+    $bitrate = if ($groups[3] -eq "N/A") { 0 } else { $groups[3] }
+
+    return @($width, $height, $duration, $bitrate)
 }
 
 $framerate = [Math]::Floor(25 * $rate)
@@ -167,7 +166,7 @@ $input = $inputs[0]
 $input_filename = $input.FullName
 $output_filename = $input.FullName
 
-$width, $height, $duration = MeasureVideo $input_filename
+$width, $height, $duration, $bitrate = MeasureVideo $input_filename
 
 $params = @()
 
@@ -291,6 +290,8 @@ if (!$hstack -and !$vstack) {
     } else {
         if ($vcopy) { $params += @("-vcodec", "copy") }
         else { $params += @("-vcodec", "h264") }
+
+        if ($bitrate) { $params += @("-vcodec", "h264", "-b:v", "$bitrate") }
 
         if ($vf -and !$params.Contains("-filter_complex")) { $params += "-vf $vf" }
         if ($af -and !$params.Contains("-filter_complex")) { $params += "-af $af" }
