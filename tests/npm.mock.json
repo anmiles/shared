@@ -1,0 +1,264 @@
+[
+  {
+    "test-case": "matches range",
+    "name": "test-package",
+    "version": "1.2.1",
+    "location": "node_modules/something-1/node_modules/test-package",
+    "isWorkspace": false,
+    "dependents": [
+      {
+        "type": "prod",
+        "name": "test-package",
+        "spec": "^1.2.1",
+        "from": {
+          "name": "@ns/middle-1",
+          "version": "0.1.0",
+          "location": "node_modules/@ns/middle-1",
+          "isWorkspace": false,
+          "dependents": [
+            {
+              "type": "prod",
+              "name": "@ns/middle-1",
+              "spec": "^0.1.0",
+              "from": {
+                "name": "dep-2",
+                "version": "0.2.0",
+                "location": "node_modules/dep-2",
+                "isWorkspace": false,
+                "dependents": [
+                  {
+                    "type": "dev",
+                    "name": "dep-2",
+                    "spec": "^0.2.0",
+                    "from": {
+                      "location": "/root-location"
+                    }
+                  },
+                  {
+                    "type": "peer",
+                    "name": "dep-2",
+                    "spec": "^0.2.0",
+                    "from": {
+                      "name": "dep-3",
+                      "version": "0.3.0",
+                      "location": "node_modules/dep-3",
+                      "isWorkspace": false,
+                      "dependents": [
+                        {
+                          "type": "dev",
+                          "name": "dep-3",
+                          "spec": "^0.3.0",
+                          "from": {
+                            "location": "/root-location/workspace-1"
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "type": "peer",
+                    "name": "middle-2",
+                    "spec": "^0.2.1",
+                    "from": {
+                      "name": "@middle-4",
+                      "version": "0.4.0",
+                      "location": "node_modules/@middle-4",
+                      "isWorkspace": false,
+                      "dependents": [
+                        {
+                          "type": "prod",
+                          "name": "@middle-4",
+                          "spec": "^0.4.0",
+                          "from": {
+                            "name": "dep-5",
+                            "version": "0.5.0",
+                            "location": "node_modules/dep-5",
+                            "isWorkspace": false,
+                            "dependents": [
+                              {
+                                "type": "dev",
+                                "name": "dep-5",
+                                "spec": "^0.5.0",
+                                "from": {
+                                  "location": "/root-location/workspace-2"
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      }
+    ],
+    "dev": true,
+    "optional": false,
+    "devOptional": true,
+    "peer": false,
+    "bundled": false,
+    "overridden": false
+  },
+  {
+    "test-case": "matches edge",
+    "name": "test-package",
+    "version": "1.2.2",
+    "location": "node_modules/something-2/node_modules/test-package",
+    "isWorkspace": false,
+    "dependents": [
+      {
+        "type": "prod",
+        "name": "test-package",
+        "spec": "^1.2.2",
+        "from": {
+          "name": "@ns/dep-6",
+          "version": "0.6.0",
+          "location": "node_modules/@ns/dep-6",
+          "isWorkspace": false,
+          "dependents": [
+            {
+              "type": "dev",
+              "name": "dep-6",
+              "spec": "^0.6.0",
+              "from": {
+                "location": "/root-location/workspace-6"
+              }
+            }
+          ]
+        }
+      }
+    ],
+    "dev": true,
+    "optional": false,
+    "devOptional": true,
+    "peer": false,
+    "bundled": false,
+    "overridden": false
+  },
+  {
+    "test-case": "doesn't match range",
+    "name": "test-package",
+    "version": "1.2.3",
+    "location": "node_modules/something-3/node_modules/test-package",
+    "isWorkspace": false,
+    "dependents": [
+      {
+        "type": "prod",
+        "name": "test-package",
+        "spec": "^1.2.3",
+        "from": {
+          "name": "@ns/dep-7",
+          "version": "0.7.0",
+          "location": "node_modules/@ns/dep-7",
+          "isWorkspace": false,
+          "dependents": [
+            {
+              "type": "dev",
+              "name": "dep-7",
+              "spec": "^0.7.0",
+              "from": {
+                "location": "/root-location/workspace-7"
+              }
+            }
+          ]
+        }
+      }
+    ],
+    "dev": true,
+    "optional": false,
+    "devOptional": true,
+    "peer": false,
+    "bundled": false,
+    "overridden": false
+  },
+  {
+    "test-case": "matches exact",
+    "name": "test-package",
+    "version": "2.4.0",
+    "location": "node_modules/something-4/node_modules/test-package",
+    "isWorkspace": false,
+    "dependents": [
+      {
+        "type": "prod",
+        "name": "test-package",
+        "spec": "^2.4.0",
+        "from": {
+          "name": "@ns/dep-8",
+          "version": "0.8.0",
+          "location": "node_modules/@ns/dep-8",
+          "isWorkspace": false,
+          "dependents": [
+            {
+              "type": "dev",
+              "name": "dep-8",
+              "spec": "^0.8.0",
+              "from": {
+                "location": "/root-location/workspace-8"
+              }
+            }
+          ]
+        }
+      }
+    ],
+    "dev": true,
+    "optional": false,
+    "devOptional": true,
+    "peer": false,
+    "bundled": false,
+    "overridden": false
+  },
+  {
+    "test-case": "doesn't match exact",
+    "name": "test-package",
+    "version": "2.5.1",
+    "location": "node_modules/something-5/node_modules/test-package",
+    "isWorkspace": false,
+    "dependents": [
+      {
+        "type": "prod",
+        "name": "test-package",
+        "spec": "^2.5.1",
+        "from": {
+          "name": "@ns/dep-9",
+          "version": "0.9.0",
+          "location": "node_modules/@ns/dep-9",
+          "isWorkspace": false,
+          "dependents": [
+            {
+              "type": "dev",
+              "name": "dep-9",
+              "spec": "^0.9.0",
+              "from": {
+                "location": "/root-location/workspace-9"
+              }
+            }
+          ]
+        }
+      }
+    ],
+    "dev": true,
+    "optional": false,
+    "devOptional": true,
+    "peer": false,
+    "bundled": false,
+    "overridden": false
+  },
+  {
+    "test-case": "doesn't have dependents",
+    "name": "test-package",
+    "version": "2.4.0",
+    "location": "node_modules/something-5/node_modules/test-package",
+    "isWorkspace": false,
+    "dependents": [],
+    "dev": true,
+    "optional": false,
+    "devOptional": true,
+    "peer": false,
+    "bundled": false,
+    "overridden": false
+  }
+]
