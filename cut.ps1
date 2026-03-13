@@ -86,7 +86,7 @@ Param (
     [string]$vsplit,
     [string]$hstack,
     [string]$vstack,
-    [int]$crossfade,
+    [float]$crossfade,
     [int]$rotate = 0,
     [int[]]$tracks,
     [string]$crop,
@@ -178,10 +178,9 @@ if ($concat) {
     $inputs_list = $inputs | % {"-i $_"}
     $params += $inputs_list
     $parent = Split-Path $inputs[0] -Parent
-    $output_filename = $parent + $ext
+    $filters_complex = @()
 
     if ($crossfade) {
-        $filters_complex = @()
         $duration_total = 0
         $vLeft = "0:v"
         $aLeft = "0:a"
@@ -201,12 +200,47 @@ if ($concat) {
             $vLeft = $vOut
             $aLeft = $aOut
         }
+    } else {
+        $filter_complex_parts = [PSCustomObject]@{
+            in = @()
+            concat = @()
+            out = @()
+        }
 
-        $params += @("-filter_complex", "`"$($filters_complex -join ";")`"")
+        for ($i = 0; $i -lt $inputs.Count; $i++) {
+            $v = "$($i):v"
+            $a = "$($i):a"
 
-        if (!$novideo) { $params += @("-map", "[vout]") }
-        if (!$mute) { $params += @("-map", "[aout]") }
+            $duration = (MeasureVideo $inputs[$i - 1])[2]
+            $duration_total += $duration - $crossfade
+
+            if (!$novideo) { $filter_complex_parts.in += "[$v]" }
+            if (!$mute) { $filter_complex_parts.in += "[$a]" }
+        }
+
+        $filter_complex_parts.concat += "n=$($inputs.Count)"
+
+        if (!$novideo) {
+            $filter_complex_parts.concat += "v=1"
+            $filter_complex_parts.out += "[vout]"
+        }
+
+        if (!$mute) {
+            $filter_complex_parts.concat += "a=1"
+            $filter_complex_parts.out += "[aout]"
+        }
+
+        $filters_complex += @(
+            ($filter_complex_parts.in -join ""),
+            "concat=", ($filter_complex_parts.concat -join ":"),
+            ($filter_complex_parts.out -join "")
+        ) -join ""
     }
+
+    if (!$novideo) { $params += @("-map", "[vout]") }
+    if (!$mute) { $params += @("-map", "[aout]") }
+
+    $params += @("-filter_complex", "`"$($filters_complex -join ";")`"")
 } else {
     $start_timespan = GetTimeSpan -str $start -default 0
     $end_timespan = GetTimeSpan -str $end -default $duration
@@ -222,7 +256,8 @@ if ($timestamp) {
     $output_filename = $output_filename.Replace($input.Name, $prefix + $input.LastWriteTime.ToString("yyyy.MM.dd_HH.mm.ss.fff"))
 } else {
     $output_filename = $output_filename.Replace($input.Name, $prefix + $input.Name)
-    $output_filename = $output_filename.Replace($input.Extension, "")
+    $output_filename = [Regex]::Replace($output_filename, [Regex]::Escape($input.Extension) + "$", "")
+    $output_filename = [Regex]::Replace($output_filename, [Regex]::Escape($ext) + "$", "")
 }
 
 $output_filename = $output_filename + $ext
