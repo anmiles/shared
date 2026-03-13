@@ -144,13 +144,13 @@ function global:fmt {
         if ($ForegroundColor) {
             $code = $ForegroundColors[$ForegroundColor]
             $f1 = "$eseq[$($code)m"
-            $c0 = "$eseq[m"
+            $c0 = "$eseq[39m"
         }
 
         if ($BackgroundColor) {
             $code = $BackgroundColors[$BackgroundColor]
             $b1 = "$eseq[$($code)m"
-            $c0 = "$eseq[m"
+            $c0 = "$eseq[39m"
         }
 
         return "$b1$f1$str$c0"
