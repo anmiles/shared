@@ -55,6 +55,8 @@
     Even much more colorized
 .PARAMETER crop
     Whether to crop video. Can receive an exact crop in format "w:h:x:y" or "$true" if need to choose a crop
+.PARAMETER old
+    Apply settings for old video cameras
 .PARAMETER silent
     Less verbose output
 .PARAMETER test
@@ -98,6 +100,7 @@ Param (
     [switch]$colorize,
     [switch]$colorize2,
     [switch]$colorize3,
+    [switch]$old,
     [switch]$silent,
     [switch]$test
 )
@@ -289,6 +292,10 @@ if (!$vcopy) {
     $default_vf_array += "setpts=PTS/$rate"
 }
 
+if ($old) {
+    $default_vf_array += "yadif=1"
+}
+
 $vf_array = $vf.Split(",")
 if ($colorize) { $vf_array += @("eq=saturation=1.3:gamma_b=1.2:gamma_r=1.1") }
 if ($colorize2) { $vf_array += @("eq=saturation=1.4:gamma_b=1.2:gamma_r=1.2") }
@@ -372,9 +379,16 @@ if ($tracks) {
 }
 
 if ($limit) {
-    $params += @("-fpsmax", "30")
+    if (!$old) {
+        $params += @("-fpsmax", "30")
+    }
+
     $params += @("-maxrate", $limit)
     $params += @("-bufsize", $limit)
+}
+
+if ($old) {
+    $params += @("-r",  "50")
 }
 
 if ($silent) {
