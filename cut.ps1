@@ -20,7 +20,7 @@
 .PARAMETER vf
     Video vf
 .PARAMETER af
-    Audio vf
+    Audio af
 .PARAMETER audio
     Select audio stream to copy. By default - skip selecting
 .PARAMETER hsplit
