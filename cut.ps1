@@ -333,7 +333,7 @@ if (!$hstack -and !$vstack) {
         if ($vcopy) { $params += @("-vcodec", "copy") }
         else { $params += @("-vcodec", "h264") }
 
-        if ($bitrate) { $params += @("-vcodec", "h264", "-b:v", "$bitrate") }
+        if ($bitrate) { $params += @("-b:v", "$bitrate") }
 
         if ($vf -and !$params.Contains("-filter_complex")) { $params += "-vf $vf" }
         if ($af -and !$params.Contains("-filter_complex")) { $params += "-af $af" }
