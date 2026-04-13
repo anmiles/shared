@@ -173,10 +173,16 @@ $width, $height, $duration, $bitrate = MeasureVideo $input_filename
 
 $params = @()
 
-if ($concat) {
-    $start_timespan = $null
-    $length = $null
+$start_timespan = GetTimeSpan -str $start -default 0
+$end_timespan = GetTimeSpan -str $end -default $duration
 
+if ($end) {
+    $length = $end_timespan - $start_timespan
+} else {
+    $length = $null
+}
+
+if ($concat) {
     $cwd = Split-Path $input_filename -Parent
     $inputs_list = $inputs | % {"-i $_"}
     $params += $inputs_list
@@ -244,15 +250,6 @@ if ($concat) {
     if (!$mute) { $params += @("-map", "[aout]") }
 
     $params += @("-filter_complex", "`"$($filters_complex -join ";")`"")
-} else {
-    $start_timespan = GetTimeSpan -str $start -default 0
-    $end_timespan = GetTimeSpan -str $end -default $duration
-
-    if ($end) {
-        $length = $end_timespan - $start_timespan
-    } else {
-        $length = $null
-    }
 }
 
 if ($timestamp) {
