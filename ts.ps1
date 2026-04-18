@@ -7,7 +7,7 @@
 	Test - add test for module based on its exported functions
 	Ignore - adds ignore pattern everywhere
 .PARAMETER arg
-	Should be one of (app | lib) for `init`
+	Should be one of (app | lib | full | react-component) for `init`
 	Should be relative path to module for `test`
 	Should be relative path to directory for `ignore`
 #>
