@@ -16,7 +16,20 @@ $ignoreExtensions = @(".txt", ".ps1", ".psd", ".wav", ".gpx")
 
 Import-Module $env:MODULES_ROOT\media.ps1 -Force
 
-if ($path) { Push-Location $path }
+$targetFile = $null
+
+if ($path) {
+	if (!(Test-Path $path)) {
+		throw "Path $path does not exist"
+	}
+
+	if ((Get-Item $path).PSIsContainer) {
+		Push-Location $path
+	} else {
+		Push-Location (Split-Path $path -Parent)
+		$targetFile = $path
+	}
+}
 
 <# UTIL FUNCTIONS #>
 
@@ -37,7 +50,19 @@ Function GetFiles([string[]]$filter) {
 
 		return $filtered
 	} else {
-		return Get-ChildItem -File -Recurse $filter
+		$files = if ($targetFile) {
+			$file = Get-Item $targetFile
+
+			if ($file.Name -like $filter) {
+				@($file)
+			} else {
+				@()
+			}
+		} else {
+			Get-ChildItem -File -Recurse $filter
+		}
+
+		return $files
 	}
 }
 
