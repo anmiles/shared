@@ -42,6 +42,11 @@ repo -name $name -quiet -action {
 	$parts = $contents -split '(\n## \[\d+\.\d+\.\d+\])'
 	$parts[1] -match '\[(\d+)\.(\d+)\.(\d+)\]' | Out-Null
 
+	if (!$matches) {
+		# template repository; don't modify CHANGELOG.md
+		return
+	}
+
 	$last_version = @{
 		major = [int]$matches[1]
 		minor = [int]$matches[2]
